@@ -1,0 +1,388 @@
+{
+  "description": "A New Flow",
+  "states": [
+    {
+      "name": "Trigger",
+      "type": "trigger",
+      "transitions": [
+        {
+          "next": "boas-vindas",
+          "event": "incomingMessage"
+        },
+        {
+          "event": "incomingCall"
+        },
+        {
+          "event": "incomingConversationMessage"
+        },
+        {
+          "event": "incomingRequest"
+        },
+        {
+          "event": "incomingParent"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -60,
+          "y": 50
+        }
+      }
+    },
+    {
+      "name": "boas-vindas",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "verifica-imagem",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 20,
+          "y": 300
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Olá!\n\nBoas vindas ao teste da live do Frontin!"
+      }
+    },
+    {
+      "name": "verifica-imagem",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "nome",
+          "event": "noMatch"
+        },
+        {
+          "next": "send_message_2",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "IMAGEM",
+              "arguments": [
+                "{{trigger.message.MediaContentType0}}"
+              ],
+              "type": "equal_to",
+              "value": "image/jpeg"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{trigger.message.MediaContentType0}}",
+        "offset": {
+          "x": 70,
+          "y": 580
+        }
+      }
+    },
+    {
+      "name": "send_message_2",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 240,
+          "y": 860
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Você enviou uma imagem.\nObrigado!",
+        "media_url": "{{trigger.message.MediaUrl0}}"
+      }
+    },
+    {
+      "name": "nome",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "valida-nome",
+          "event": "incomingMessage"
+        },
+        {
+          "next": "erro-nome",
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -150,
+          "y": 880
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "body": "Qual seu nome para impressão na cradencial?",
+        "timeout": "120"
+      }
+    },
+    {
+      "name": "pronome",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "valida-pronome",
+          "event": "incomingMessage"
+        },
+        {
+          "next": "erro-pronome",
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 10,
+          "y": 1440
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "body": "Qual pronome você deseja utilizar?\n\n1 Ele/Dele\n2 Ela/Dela\n3 Ile/Dile\n4 Elu/Delu\n5 Não quero utilizar",
+        "timeout": "120"
+      }
+    },
+    {
+      "name": "linkedin",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "valida-linkedin",
+          "event": "incomingMessage"
+        },
+        {
+          "next": "erro-linkedin",
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 70,
+          "y": 1980
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "body": "Qual o link do seu LinkedIn?",
+        "timeout": "120"
+      }
+    },
+    {
+      "name": "valida-pronome",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "erro-pronome",
+          "event": "noMatch"
+        },
+        {
+          "next": "linkedin",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Pronome Válido",
+              "arguments": [
+                "{{widgets.pronome.inbound.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "1,2,3,4,5,ele,ela,ile,elu,não,nao"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.pronome.inbound.Body}}",
+        "offset": {
+          "x": -110,
+          "y": 1700
+        }
+      }
+    },
+    {
+      "name": "valida-nome",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "erro-nome",
+          "event": "noMatch"
+        },
+        {
+          "next": "pronome",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Preencheu Nome",
+              "arguments": [
+                "{{widgets.nome.inbound.Body}}"
+              ],
+              "type": "is_not_blank",
+              "value": "Is Not Blank"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.nome.inbound.Body}}",
+        "offset": {
+          "x": -190,
+          "y": 1150
+        }
+      }
+    },
+    {
+      "name": "erro-nome",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "nome",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -590,
+          "y": 1160
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Você precisa informar um nome."
+      }
+    },
+    {
+      "name": "erro-pronome",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "pronome",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -520,
+          "y": 1700
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Você precisa informar um pronome válido."
+      }
+    },
+    {
+      "name": "valida-linkedin",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "erro-linkedin",
+          "event": "noMatch"
+        },
+        {
+          "next": "resultado",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "LinkedIn Valido",
+              "arguments": [
+                "{{widgets.linkedin.inbound.Body}}"
+              ],
+              "type": "contains",
+              "value": "linkedin.com/in/"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.linkedin.inbound.Body}}",
+        "offset": {
+          "x": 20,
+          "y": 2260
+        }
+      }
+    },
+    {
+      "name": "erro-linkedin",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "linkedin",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -480,
+          "y": 2280
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Você precisa informar um *LINK* do LinkedIn válido. Ele precisa ser um link de uma pessoa."
+      }
+    },
+    {
+      "name": "resultado",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 140,
+          "y": 2510
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Confirmado!\n\nVou fazer seu checkin antecipado com os seguintes dados:\n\nNome: \n{{widgets.nome.inbound.Body}} \n\nPronome: {{widgets.pronome.inbound.Body}} \n\nLinkedIn: {{widgets.linkedin.inbound.Body}}"
+      }
+    }
+  ],
+  "initial_state": "Trigger",
+  "flags": {
+    "allow_concurrent_calls": true
+  }
+}
