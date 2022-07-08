@@ -6,7 +6,7 @@
       "type": "trigger",
       "transitions": [
         {
-          "next": "boas-vindas",
+          "next": "verifica-imagem",
           "event": "incomingMessage"
         },
         {
@@ -24,8 +24,8 @@
       ],
       "properties": {
         "offset": {
-          "x": -60,
-          "y": 50
+          "x": -220,
+          "y": -600
         }
       }
     },
@@ -34,7 +34,6 @@
       "type": "send-message",
       "transitions": [
         {
-          "next": "verifica-imagem",
           "event": "sent"
         },
         {
@@ -43,8 +42,8 @@
       ],
       "properties": {
         "offset": {
-          "x": 20,
-          "y": 300
+          "x": -340,
+          "y": 600
         },
         "service": "{{trigger.message.InstanceSid}}",
         "channel": "{{trigger.message.ChannelSid}}",
@@ -58,7 +57,7 @@
       "type": "split-based-on",
       "transitions": [
         {
-          "next": "nome",
+          "next": "padrao-sympla",
           "event": "noMatch"
         },
         {
@@ -79,8 +78,8 @@
       "properties": {
         "input": "{{trigger.message.MediaContentType0}}",
         "offset": {
-          "x": 70,
-          "y": 580
+          "x": 10,
+          "y": -350
         }
       }
     },
@@ -97,8 +96,8 @@
       ],
       "properties": {
         "offset": {
-          "x": 240,
-          "y": 860
+          "x": 670,
+          "y": 200
         },
         "service": "{{trigger.message.InstanceSid}}",
         "channel": "{{trigger.message.ChannelSid}}",
@@ -126,8 +125,8 @@
       ],
       "properties": {
         "offset": {
-          "x": -150,
-          "y": 880
+          "x": -120,
+          "y": 890
         },
         "service": "{{trigger.message.InstanceSid}}",
         "channel": "{{trigger.message.ChannelSid}}",
@@ -249,8 +248,8 @@
       "properties": {
         "input": "{{widgets.nome.inbound.Body}}",
         "offset": {
-          "x": -190,
-          "y": 1150
+          "x": -160,
+          "y": 1120
         }
       }
     },
@@ -268,8 +267,8 @@
       ],
       "properties": {
         "offset": {
-          "x": -590,
-          "y": 1160
+          "x": -530,
+          "y": 1130
         },
         "service": "{{trigger.message.InstanceSid}}",
         "channel": "{{trigger.message.ChannelSid}}",
@@ -377,7 +376,205 @@
         "channel": "{{trigger.message.ChannelSid}}",
         "from": "{{flow.channel.address}}",
         "to": "{{contact.channel.address}}",
-        "body": "Confirmado!\n\nVou fazer seu checkin antecipado com os seguintes dados:\n\nNome: \n{{widgets.nome.inbound.Body}} \n\nPronome: {{widgets.pronome.inbound.Body}} \n\nLinkedIn: {{widgets.linkedin.inbound.Body}}"
+        "body": "Confirmado!\n\nVou fazer seu checkin antecipado com os seguintes dados:\n\nSympla: {{flow.variables.sympla}}\n\nNome: \n{{widgets.nome.inbound.Body}} \n\nPronome: {{widgets.pronome.inbound.Body}} \n\nLinkedIn: {{widgets.linkedin.inbound.Body}}"
+      }
+    },
+    {
+      "name": "verifica-sympla",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "participante-existe",
+          "event": "success"
+        },
+        {
+          "next": "boas-vindas",
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": 150,
+          "y": 410
+        },
+        "function_sid": "ZHa19a728d500358dc30662aa1c216b16c",
+        "parameters": [
+          {
+            "value": "{{flow.variables.sympla}}",
+            "key": "ticket_number"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/verifica-sympla"
+      }
+    },
+    {
+      "name": "participante-existe",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "boas-vindas",
+          "event": "noMatch"
+        },
+        {
+          "next": "registro-encontrado",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "EXISTE",
+              "arguments": [
+                "{{widgets.verifica-sympla.parsed.existe}}"
+              ],
+              "type": "matches_any_of",
+              "value": "true,True,1"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.verifica-sympla.parsed.existe}}",
+        "offset": {
+          "x": 310,
+          "y": 630
+        }
+      }
+    },
+    {
+      "name": "padrao-sympla",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "boas-vindas",
+          "event": "noMatch"
+        },
+        {
+          "next": "define-sympla-symples",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "SYMPLA SIMPLES",
+              "arguments": [
+                "{{trigger.message.Body}}"
+              ],
+              "type": "regex",
+              "value": "[\\d\\w]{4}[\\d\\w]{2}[\\d\\w]{4}"
+            }
+          ]
+        },
+        {
+          "next": "define-sympla-completo",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "SYMPLA COMPLETO",
+              "arguments": [
+                "{{trigger.message.Body}}"
+              ],
+              "type": "regex",
+              "value": "[\\d\\w]{4}[-]{1}[\\d\\w]{2}[-]{1}[\\d\\w]{4}"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{trigger.message.Body}}",
+        "offset": {
+          "x": -480,
+          "y": -130
+        }
+      }
+    },
+    {
+      "name": "define-sympla-symples",
+      "type": "set-variables",
+      "transitions": [
+        {
+          "next": "mensagem-espera-sympla",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "variables": [
+          {
+            "value": "{{trigger.message.Body | slice: 0, 4}}-{{trigger.message.Body | slice: 4, 2}}-{{trigger.message.Body | slice: 6, 4}}",
+            "key": "sympla"
+          }
+        ],
+        "offset": {
+          "x": -380,
+          "y": 90
+        }
+      }
+    },
+    {
+      "name": "define-sympla-completo",
+      "type": "set-variables",
+      "transitions": [
+        {
+          "next": "mensagem-espera-sympla",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "variables": [
+          {
+            "value": "{{trigger.message.Body | upcase }}",
+            "key": "sympla"
+          }
+        ],
+        "offset": {
+          "x": -50,
+          "y": 90
+        }
+      }
+    },
+    {
+      "name": "mensagem-espera-sympla",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "verifica-sympla",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -180,
+          "y": 310
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Um momento, estou verificando se o código *{{flow.variables.sympla}}* está registado no Sympla."
+      }
+    },
+    {
+      "name": "registro-encontrado",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "nome",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 360,
+          "y": 870
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Encontrei o registro.\n\nVamos credenciar *{{widgets.verifica-sympla.parsed.first_name}} {{widgets.verifica-sympla.parsed.last_name}}* com e-mail {{widgets.verifica-sympla.parsed.email}}."
       }
     }
   ],
