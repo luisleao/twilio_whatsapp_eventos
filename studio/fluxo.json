@@ -24,8 +24,8 @@
       ],
       "properties": {
         "offset": {
-          "x": -220,
-          "y": -600
+          "x": -910,
+          "y": -1000
         }
       }
     },
@@ -42,8 +42,8 @@
       ],
       "properties": {
         "offset": {
-          "x": -340,
-          "y": 600
+          "x": -1130,
+          "y": 720
         },
         "service": "{{trigger.message.InstanceSid}}",
         "channel": "{{trigger.message.ChannelSid}}",
@@ -78,8 +78,8 @@
       "properties": {
         "input": "{{trigger.message.MediaContentType0}}",
         "offset": {
-          "x": 10,
-          "y": -350
+          "x": -560,
+          "y": -750
         }
       }
     },
@@ -310,7 +310,7 @@
           "event": "noMatch"
         },
         {
-          "next": "resultado",
+          "next": "add-registro",
           "event": "match",
           "conditions": [
             {
@@ -369,14 +369,14 @@
       ],
       "properties": {
         "offset": {
-          "x": 140,
-          "y": 2510
+          "x": 200,
+          "y": 2790
         },
         "service": "{{trigger.message.InstanceSid}}",
         "channel": "{{trigger.message.ChannelSid}}",
         "from": "{{flow.channel.address}}",
         "to": "{{contact.channel.address}}",
-        "body": "Confirmado!\n\nVou fazer seu checkin antecipado com os seguintes dados:\n\nSympla: {{flow.variables.sympla}}\n\nNome: \n{{widgets.nome.inbound.Body}} \n\nPronome: {{widgets.pronome.inbound.Body}} \n\nLinkedIn: {{widgets.linkedin.inbound.Body}}"
+        "body": "{{widgets.add-registro.parsed.mensagem}}"
       }
     },
     {
@@ -396,8 +396,8 @@
         "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
         "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
         "offset": {
-          "x": 150,
-          "y": 410
+          "x": -400,
+          "y": 400
         },
         "function_sid": "ZHa19a728d500358dc30662aa1c216b16c",
         "parameters": [
@@ -422,20 +422,34 @@
           "event": "match",
           "conditions": [
             {
-              "friendly_name": "EXISTE",
+              "friendly_name": "VALIDO",
               "arguments": [
-                "{{widgets.verifica-sympla.parsed.existe}}"
+                "{{widgets.verifica-sympla.parsed.resultado}}"
               ],
               "type": "matches_any_of",
-              "value": "true,True,1"
+              "value": "VALIDO"
+            }
+          ]
+        },
+        {
+          "next": "erro-usado",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "USADO",
+              "arguments": [
+                "{{widgets.verifica-sympla.parsed.resultado}}"
+              ],
+              "type": "matches_any_of",
+              "value": "USADO"
             }
           ]
         }
       ],
       "properties": {
-        "input": "{{widgets.verifica-sympla.parsed.existe}}",
+        "input": "{{widgets.verifica-sympla.parsed.resultado}}",
         "offset": {
-          "x": 310,
+          "x": -250,
           "y": 630
         }
       }
@@ -480,8 +494,8 @@
       "properties": {
         "input": "{{trigger.message.Body}}",
         "offset": {
-          "x": -480,
-          "y": -130
+          "x": -920,
+          "y": -510
         }
       }
     },
@@ -502,8 +516,8 @@
           }
         ],
         "offset": {
-          "x": -380,
-          "y": 90
+          "x": -810,
+          "y": -120
         }
       }
     },
@@ -524,8 +538,8 @@
           }
         ],
         "offset": {
-          "x": -50,
-          "y": 90
+          "x": -470,
+          "y": -120
         }
       }
     },
@@ -543,8 +557,8 @@
       ],
       "properties": {
         "offset": {
-          "x": -180,
-          "y": 310
+          "x": -620,
+          "y": 160
         },
         "service": "{{trigger.message.InstanceSid}}",
         "channel": "{{trigger.message.ChannelSid}}",
@@ -575,6 +589,74 @@
         "from": "{{flow.channel.address}}",
         "to": "{{contact.channel.address}}",
         "body": "Encontrei o registro.\n\nVamos credenciar *{{widgets.verifica-sympla.parsed.first_name}} {{widgets.verifica-sympla.parsed.last_name}}* com e-mail {{widgets.verifica-sympla.parsed.email}}."
+      }
+    },
+    {
+      "name": "add-registro",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "resultado",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": 220,
+          "y": 2530
+        },
+        "function_sid": "ZH42f58f015282f709797060d0f1610b1a",
+        "parameters": [
+          {
+            "value": "{{flow.variables.sympla}}",
+            "key": "sympla"
+          },
+          {
+            "value": "{{widgets.nome.inbound.Body}}",
+            "key": "nome"
+          },
+          {
+            "value": "{{widgets.pronome.inbound.Body}}",
+            "key": "pronome"
+          },
+          {
+            "value": "{{widgets.linkedin.inbound.Body}}",
+            "key": "linkedin"
+          },
+          {
+            "value": "{{trigger.message.From}}",
+            "key": "from"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/add-registro"
+      }
+    },
+    {
+      "name": "erro-usado",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 710,
+          "y": 870
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "O ticket *{{flow.variables.sympla}}* já foi utilizado.\n\nVocê deve informar outro ticket para conseguir dar início ao seu registro."
       }
     }
   ],

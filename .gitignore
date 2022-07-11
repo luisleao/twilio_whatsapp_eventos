@@ -132,4 +132,5 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-scripts/firebase-credentials.json
+firebase-credentials.json
+eventos/assets/firebase-credentials.private.json
