@@ -1,0 +1,21 @@
+{
+  "name": "scripts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "0.27.2",
+    "dotenv": "16.0.1",
+    "dymojs": "1.2.0",
+    "firebase": "9.9.0",
+    "firebase-admin": "11.0.0",
+    "sympla": "0.0.3",
+    "twilio": "3.78.0"
+  }
+}
