@@ -35,7 +35,6 @@ exports.handler = async function(context, event, callback) {
     const participante = await firestore.collection('participantes').doc(participanteId).get().then(p => {
         return p.data();
     })
-
     console.log('resultado participante', participante);
 
     switch(state) {
@@ -59,8 +58,14 @@ exports.handler = async function(context, event, callback) {
         
 
 
-            const videoRequest = await videomatik.getOneVideoRequest(videoRequestId);
-            console.log(videoRequest.renderJob);
+            // const videoRequest = await videomatik.getOneVideoRequest(videoRequestId);
+            // console.log(videoRequest.renderJob);
+
+            await client.messages.create({
+                from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
+                to: `whatsapp:${participante.phoneNumber}`,
+                body: 'Seu vídeo foi gerado com sucesso e você receberá ele em alguns instantes!\n\nQuer saber como desenvolvemos este serviço? Confira o código-fonte em https://github.com/luisleao/twilio_whatsapp_eventos'
+            });
 
             await client.messages.create({
                 from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
