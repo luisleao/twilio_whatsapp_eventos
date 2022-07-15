@@ -11,11 +11,14 @@
   "license": "ISC",
   "dependencies": {
     "axios": "0.27.2",
+    "csvtojson": "2.0.10",
     "dotenv": "16.0.1",
     "dymojs": "1.2.0",
     "firebase": "9.9.0",
     "firebase-admin": "11.0.0",
+    "inquirer": "9.0.0",
     "sympla": "0.0.3",
-    "twilio": "3.78.0"
+    "twilio": "3.78.0",
+    "xml-js": "1.6.11"
   }
 }

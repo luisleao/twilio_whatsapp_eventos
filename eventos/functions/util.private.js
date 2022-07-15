@@ -18,7 +18,25 @@ exports.getDDD = function(number) {
 }
 
 exports.validateEmail = function(email) {
-//   const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-  const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-  return re.test(email);
+    const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(email);
 }
+
+exports.convertNewLine = (text) => {
+    return text.split('<e>').join('\n');
+}
+
+exports.fillParams = (text, params) => {
+    return Object.keys(params).reduce((prev, key)=> {
+        return prev.split(`{{${key}}}`).join(params[key]);
+    }, `${text}`);
+}
+
+exports.sendNotification = async (client, from, to, message) => {
+    return await client.messages.create({
+        from: from,
+        to: to,
+        body: message
+    });
+}
+  

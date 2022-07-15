@@ -134,3 +134,5 @@ dist
 
 firebase-credentials.json
 eventos/assets/firebase-credentials.private.json
+
+scripts/csv/*.csv

@@ -27,7 +27,7 @@ exports.handler = async function(context, event, callback) {
 
   if (participante != null) {
     // verificar se ja usou o codigo
-    const sympla = await firestore.collection('events').doc('frontin').collection('sympla').doc(event.ticket_number.toUpperCase()).get();
+    const sympla = await firestore.collection('events').doc(event.evento).collection('sympla').doc(event.ticket_number.toUpperCase()).get();
     if (sympla.exists) {
         // Erro - participante já utilizou este codigo
         return callback(null, {

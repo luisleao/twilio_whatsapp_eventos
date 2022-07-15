@@ -6,7 +6,7 @@
       "type": "trigger",
       "transitions": [
         {
-          "next": "verifica-imagem",
+          "next": "define-evento",
           "event": "incomingMessage"
         },
         {
@@ -24,8 +24,8 @@
       ],
       "properties": {
         "offset": {
-          "x": -910,
-          "y": -1000
+          "x": -990,
+          "y": -1220
         }
       }
     },
@@ -404,6 +404,10 @@
           {
             "value": "{{flow.variables.sympla}}",
             "key": "ticket_number"
+          },
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
           }
         ],
         "url": "https://eventos-2246-dev.twil.io/verifica-sympla"
@@ -631,6 +635,10 @@
           {
             "value": "{{trigger.message.From}}",
             "key": "from"
+          },
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
           }
         ],
         "url": "https://eventos-2246-dev.twil.io/add-registro"
@@ -657,6 +665,28 @@
         "from": "{{flow.channel.address}}",
         "to": "{{contact.channel.address}}",
         "body": "O ticket *{{flow.variables.sympla}}* já foi utilizado.\n\nVocê deve informar outro ticket para conseguir dar início ao seu registro."
+      }
+    },
+    {
+      "name": "define-evento",
+      "type": "set-variables",
+      "transitions": [
+        {
+          "next": "verifica-imagem",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "variables": [
+          {
+            "value": "frontin",
+            "key": "evento"
+          }
+        ],
+        "offset": {
+          "x": -740,
+          "y": -990
+        }
       }
     }
   ],

@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@twilio/runtime-handler": "1.2.3",
+    "@videomatik/api": "2.0.0",
     "firebase-admin": "11.0.0",
     "md5": "2.3.0",
     "sympla": "0.0.3",
