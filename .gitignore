@@ -135,5 +135,5 @@ dist
 firebase-credentials.json
 eventos/assets/firebase-credentials.private.json
 
-scripts/csv/*.csv
+scripts/csv/*.*
 .DS_Store
