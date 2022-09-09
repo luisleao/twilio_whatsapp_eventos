@@ -1,0 +1,251 @@
+<html>
+    <head>
+        <title>Administração de Fila de Fotografia</title>
+        <style>
+            html, body {
+                margin: 0;
+                padding: 0;
+                font-size: 20pt;
+            }
+            #container {
+                width: 100%;
+                max-width: 960px;
+                margin: 0 auto
+            }
+            .lista {
+                display: block;
+            }
+
+            #fila li {
+                background-color: #ededed;
+            }
+            #atendimento li {
+                background-color: rgb(221, 233, 0);
+            }
+            #concluido li {
+                background-color: #056505
+            }
+
+            ul {
+                padding: 0;
+                list-style-type: none;
+            }
+            li {
+                padding: 1em;
+                margin-bottom: 3px;
+                position: relative;
+            }
+
+            button {
+                padding: .5em;
+                margin: .5em;
+                font-size: 1em;
+            }
+
+            .posicao {
+                position: absolute;
+                right: 1em;
+                top: 1em;
+                text-align: right;
+            }
+
+            .telefone, .nome {
+                text-transform: uppercase;
+                font-size: 1.5em;
+            }
+            
+
+        </style>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    </head>
+    <body>
+
+        <div id="container">
+            <h1>Admin de Fila de Fotografia</h1>
+            <a href="#" id="btnRefresh">ATUALIZAR LISTA</a>
+            <ul id="atendimento" class="lista">
+            </ul>
+            <ul id="fila" class="lista">
+            </ul>
+            <ul id="concluido" class="lista">
+            </ul>
+    
+        </div>
+
+        <script>
+
+
+            const ALLOWED_PARAMS = [
+                'posicao',
+                'telefone',
+                'nome',
+                'createdAt',
+                'updatedAt',
+                'totalFotos',
+                'pasta'
+            ];
+
+            const TIMESTAMP_PARAMS = [
+                'createdAt',
+                'updatedAt',
+            ]
+
+            const atender = (e) => {
+                const id = $(e.currentTarget).parent('li').attr('id');
+                $.get(`/fotografia-atende?filaId=${id}`, (r) => {
+                    if (!r.erro) {
+                        carregaDados();
+                    } else {
+                        alert(r.mensagem);
+                    }
+                });
+            }
+            const chamar = (e) => {
+                const id = $(e.currentTarget).parent('li').attr('id');
+                $.get(`/fotografia-chama?filaId=${id}`, (r) => {
+                    if (r.mensagem) {
+                        alert(r.mensagem);
+                    }
+                });
+            }
+            const finalizar = (e) => {
+                const id = $(e.currentTarget).parent('li').attr('id');
+                const pasta = prompt('Qual a pasta do Drive?');
+                $.get(`/fotografia-finaliza?filaId=${id}&pasta=${pasta}`, (r) => {
+                    if (r.mensagem) {
+                        alert(r.mensagem);
+                    }
+                    if (!r.erro) {
+                        carregaDados();
+                    }
+                });
+            }
+            const resetar = (e) => {
+                const id = $(e.currentTarget).parent('li').attr('id');
+                $.get(`/fotografia-reset?filaId=${id}`, (r) => {
+                    if (r.mensagem) {
+                        alert(r.mensagem);
+                    }
+                    if (!r.erro) {
+                        carregaDados();
+                    }
+                });
+
+            }
+            const cancelar = (e) => {
+                const id = $(e.currentTarget).parent('li').attr('id');
+                $.get(`/fotografia-cancela?filaId=${id}`, (r) => {
+                    if (r.mensagem) {
+                        alert(r.mensagem);
+                    }
+                    if (!r.erro) {
+                        carregaDados();
+                    }
+                });
+            }
+
+            const carregaDados = async () => {
+                $('.lista').empty();
+
+                $.get('/fotografia-lista', (res) => {
+                    window.x = res;
+                    for (item of res.lista) {
+                        const el = document.createElement('li');
+                        el.id = item.id;
+                        
+                        for (param of ALLOWED_PARAMS) {
+                        // Object.keys(ALLOWED_PARAMS).forEach((i, param) => {
+                            if (item[param]) {
+                                if (TIMESTAMP_PARAMS.includes(param)) {
+                                    // const data = firestore.Timestamp.fromDate(new Date());
+                                    // console.log(item[param]);
+                                    // window.x = item[param];
+                                    // $(el).append(`<div class='${param}'>${item[param]}</div>`)
+                                } else {
+                                    if (['pasta'].includes(param)) {
+                                        if (['atendimento'].includes(item.status)) {
+                                            $(el).append(`<a href='https://drive.google.com/drive/folders/${item[param]}' class=${param} link' target='_blank'>Drive</a>`)
+                                        }
+                                    } else {
+                                        $(el).append(`<div class='${param}'>${item[param]}</div>`)
+                                    }
+                                }
+                            }
+                            console.log(param);
+                        };
+
+
+                        // add botoes
+                        if (['fila'].includes(item.status)) {
+
+                            const btAtende = document.createElement('button');
+                            const btCancela = document.createElement('button');
+                            const btChama = document.createElement('button');
+
+                            btAtende.innerText = 'ATENDER';
+                            $(btAtende).click(atender);
+
+                            btCancela.innerText = 'CANCELAR';
+                            $(btCancela).click(cancelar);
+
+                            btChama.innerText = 'CHAMAR';
+                            $(btChama).click(chamar);
+
+                            el.append(btChama);
+                            el.append(btAtende);
+                            el.append(btCancela);
+
+                            if (item.pasta) {
+                                const btFinaliza = document.createElement('button');
+                                btFinaliza.innerText = 'FINALIZAR';
+                                $(btFinaliza).click(finalizar);
+                                el.append(btFinaliza);
+
+                            }
+
+
+                        }
+                        if (['atendimento'].includes(item.status)) {
+                            const btFinaliza = document.createElement('button');
+                            btFinaliza.innerText = 'FINALIZAR';
+                            $(btFinaliza).click(finalizar);
+                            el.append(btFinaliza);
+
+                        }
+
+                        if (['atendimento'].includes(item.status)) {
+                            const btReset = document.createElement('button');
+                            btReset.innerText = 'RESET';
+
+                            $(btReset).click(resetar);
+                            el.append(btReset);
+
+                        }
+
+                        
+
+
+                        // $(`#${item.status}`).append(`<li>${JSON.stringify(item)}</li>`)
+                        $(`#${item.status}`).append(el);
+                        console.log(item);
+                    }
+                    // console.log(d);
+                });
+
+            }
+
+            $(document).ready(function(){
+                carregaDados();
+
+                // jQuery methods go here...
+                $('#btnRefresh').click(e => {
+                    e.preventDefault();
+                    carregaDados();
+                })
+
+            });
+        </script>
+        
+    </body>
+</html>

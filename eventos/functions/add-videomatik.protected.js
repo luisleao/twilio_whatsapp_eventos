@@ -18,12 +18,46 @@ const videomatik = new VideomatikAPI({
 const firestore = admin.firestore();
 const md5 = require('md5');
 
+const VIDEOMATIK_ESTADOS_TRAVAR = [
+  'new',
+  'render'
+]
+
 // parâmetros: imagem, from
 exports.handler = async function(context, event, callback) {
-    // TODO: adicionar firebase
+    // adicionar firebase
     console.log('event videomatik ', event);
 
     let participanteId = await md5(limpaNumero(event.from));
+
+    // TODO: verificar se tem vídeo com status 'new' ou outro
+    let participante = await firestore.collection('participantes')
+      .doc(participanteId).get().then(p => p.data());
+
+    
+
+    let videosPendentes = await firestore.collection('videomatik')
+      .where('participanteId', '==', participanteId)
+      .where('state', 'in', VIDEOMATIK_ESTADOS_TRAVAR)
+      .get()
+      .then(list => {
+        return list.size
+      });
+    
+    console.log('VIDEO PENDENTES', videosPendentes);
+
+    let mensagem = [];
+
+    if (videosPendentes > 0 && !participante.videomatikUnlimited) {
+      mensagem.push('Você ainda tem um vídeo em processo de renderização.');
+      mensagem.push('Aguarde a finalização dele para solicitar um novo!');
+
+      callback(null, {
+        erro: true,
+        mensagem: mensagem.join('\n\n')
+      });
+    }
+
 
     let registroId = await firestore.collection('videomatik').add({
         participanteId,
@@ -39,9 +73,17 @@ exports.handler = async function(context, event, callback) {
     await firestore.collection('participantes')
     .doc(participanteId).set({
         phoneNumber: limpaNumero(event.from),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        videomatik: admin.firestore.FieldValue.increment(1)
     }, { merge: true });
 
+
+    await firestore.collection('events')
+    .doc(event.evento).collection('participantes')
+    .doc(participanteId).set({
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      videomatik: admin.firestore.FieldValue.increment(1)
+    }, { merge: true });
 
 
     // Chamada para incluir vídeo na Videomatik
@@ -137,7 +179,7 @@ exports.handler = async function(context, event, callback) {
         ]
     };
 
-    const customJSON = {
+    const customJSONFrontin = {
         "soundtrack": {
           "startTime": 0,
           "source": ""
@@ -226,10 +268,26 @@ exports.handler = async function(context, event, callback) {
             "color": "#46d733"
           }
         ]
-      };
+    };
+
+    const customJSON = {
+      "soundtrack": {
+        "startTime": 0,
+        "source": ""
+      },
+      "images": [
+        {
+          "path": "assets[0]",
+          "source": event.imagem
+        }
+      ],
+      "version": "1",
+      "texts": [],
+      "shapes": []
+    }
 
     const videoRequest = await videomatik.createVideoRequest({
-        templateId: 'front-in-sampa-participantes-v2', //'front-in-sampa-participantes', // <- ID do Template
+        templateId: 'eu-fui-no-tdc-business', //'front-in-sampa-participantes', // <- ID do Template
         customJSON,
         compositionId: 'default', // <- Vertical
         actions: [

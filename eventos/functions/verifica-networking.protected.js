@@ -15,7 +15,9 @@ const MENSAGEM_CONEXAO = 'Aqui está o LinkedIn da pessoa que você escaneou: {{
 const MENSAGEM_CONECTADO = 'Uma nova pessoa que acabou de se conectar com você: {{1}}\n\n';
 
 
-
+/*
+    event: evento, token, from, to
+*/
 exports.handler = async function(context, event, callback) {
     const client = await context.getTwilioClient();
 
@@ -45,6 +47,8 @@ exports.handler = async function(context, event, callback) {
     // Verificar se participante possui LinkedIn
     const participanteData = participante.data();
     if (!participanteData.linkedin) {
+        // TODO: parâmetro para informar que precisa registrar e adicionar loop no studio para pedir linkedin e depois recomeçar.
+
         return callback(null, {
             retornaEvento: true,
             mensagem: '✋ Atenção ✋\n\nAinda não informou seu LinkedIn para participar.\n\nÉ necessário fazer seu registro no evento.'
@@ -70,8 +74,6 @@ exports.handler = async function(context, event, callback) {
     }
 
 
-    let pointsToGive = 0;
-    let pointsToReceive = 0;
 
     // Montar mensagem base para quem informou o codigo
     let networkedProfile = ['\n'];
@@ -96,6 +98,95 @@ exports.handler = async function(context, event, callback) {
 
 
     if (!networked) {
+
+        let pointsToGive = 0;
+        let pointsToReceive = 0;
+
+        // carregar pontuação padrão do evento
+        const eventoData = await firestore.collection('events').doc(event.evento).get().then(s => {
+            if (s.exists) {
+                return s.data();
+            } else {
+                return {}
+            }
+        });
+
+
+        // TODO: carregar pontuação manual do participante e da conexão
+        if (eventoData.networkingPoints) {
+
+            pointsToGive =  0;
+            pointsToReceive = 0;
+
+            if (!participanteData.dontReceivePoints) {
+                pointsToReceive = eventoData.pointsToReceive || 1;
+            }
+            if (
+                (participanteConectadoData.pointsToGive && participanteConectadoData.pointsToGive > 0)
+                && !participanteData.dontReceivePoints) {
+                pointsToReceive = participanteConectadoData.pointsToGive;
+            }
+
+            if (!participanteConectadoData.dontReceivePoints) {
+                pointsToGive = eventoData.pointsToGive || 2;
+            }
+            if (
+                (participanteData.pointsToGive && participanteData.pointsToGive > 0)
+                && !participanteConectadoData.dontReceivePoints) {
+                pointsToGive = participanteData.pointsToGive
+
+            }
+        }
+
+
+        // Registrar pontuação no evento
+        await firestore.collection('score')
+            .doc(event.evento)
+            .collection('participantes')
+            .doc(event.token)
+            .set({
+                pontosCorrente: admin.firestore.FieldValue.increment(pointsToGive),
+                pontosAcumulados: admin.firestore.FieldValue.increment(pointsToGive),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+        await firestore.collection('score')
+            .doc(event.evento)
+            .collection('participantes')
+            .doc(participanteId)
+            .set({
+                pontosCorrente: admin.firestore.FieldValue.increment(pointsToReceive),
+                pontosAcumulados: admin.firestore.FieldValue.increment(pointsToReceive),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+
+
+            
+        // Registrar pontuação no SCORE
+        await firestore.collection('events')
+            .doc(event.evento)
+            .collection('participantes')
+            .doc(event.token)
+            .set({
+                pontosCorrente: admin.firestore.FieldValue.increment(pointsToGive),
+                pontosAcumulados: admin.firestore.FieldValue.increment(pointsToGive),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+        await firestore.collection('events')
+            .doc(event.evento)
+            .collection('participantes')
+            .doc(participanteId)
+            .set({
+                pontosCorrente: admin.firestore.FieldValue.increment(pointsToReceive),
+                pontosAcumulados: admin.firestore.FieldValue.increment(pointsToReceive),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+    
+
+            
         // Incluir registro de networking no evento
         await firestore.collection('events').doc(event.evento).collection('networking').add({
             connection: `${participanteId}_${networkedId}`,
@@ -114,9 +205,7 @@ exports.handler = async function(context, event, callback) {
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
 
-        // TODO: carregar pontuação padrão do evento
-        // TODO: carregar pontuação manual do participante e da conexão
-        // TODO: Registrar pontuação
+
 
         
         // Adicionar mensagem de pontuação se for o caso
@@ -168,37 +257,6 @@ exports.handler = async function(context, event, callback) {
     //   const networkedData = networked.data();
 
     //   // verificar se já pontuou um ao outro
-
-    //   // /score/tdcinnovation2022/attendants/[participanteId]/tokens/network_[networkedId]
-    //   console.log('AWAIT DO SCORE 1');
-    //   if ((await firestore.collection('score')
-    //     .doc(currentEvent)
-    //     .collection('attendants')
-    //     .doc(event.token)
-    //     .collection('tokens')
-    //     .doc(`networking_${participanteId}`)
-    //     .get()).exists){
-    //       return callback(null, {
-    //         type: 'networking-scan',
-    //         message: '✋ Atenção ✋\n\nJá existe um registro de networking entre a pessoa informada e você.'
-    //       });
-    //     }
-
-    //   console.log('AWAIT DO SCORE 2');
-
-    //   // /score/tdcinnovation2022/attendants/[networkedId]/tokens/network_[participanteId]
-    //   if ((await firestore.collection('score')
-    //     .doc(currentEvent)
-    //     .collection('attendants')
-    //     .doc(participanteId)
-    //     .collection('tokens')
-    //     .doc(`networking_${event.token}`)
-    //     .get()).exists){
-    //       return callback(null, {
-    //         type: 'networking-scan',
-    //         message: '✋ Atenção ✋\n\nJá existe um registro de networking entre você e a pessoa informada.'
-    //       });
-    //     }
 
 
 

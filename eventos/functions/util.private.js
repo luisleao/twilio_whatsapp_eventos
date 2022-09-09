@@ -6,8 +6,9 @@ exports.escondeNumero = function(number) {
     return number.substr(0, number.length - 8) + '****-' + number.substr(number.length - 4 )
 }
 
-exports.limpaNumero = function(number) {
+exports.limpaNumero = function(number, removeMais) {
     if (number) number = number.replace('whatsapp:', '');
+    if (number && removeMais) number = number.replace('+', '');
     return number;
 }
 
@@ -40,3 +41,21 @@ exports.sendNotification = async (client, from, to, message) => {
     });
 }
   
+exports.sendNotificationMedia = async (client, from, to, message, mediaUrl) => {
+    return await client.messages.create({
+        from: from,
+        to: to,
+        body: message,
+        mediaUrl
+    });
+}
+
+exports.adicionaNove = (number) => {
+    if (number.split('+55').length > 1) {
+        if (number.length == 13) {
+            return number.substr(0, number.length - 8) + '9' + number.substr(number.length - 8);
+        }
+        return number;
+    }
+    return number;
+}

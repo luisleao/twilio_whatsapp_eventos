@@ -29,7 +29,6 @@ exports.handler = async function(context, event, callback) {
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         videoRequestId,
         state
-        // TODO: incluir demais dados
     }, { merge: true });
 
     const participante = await firestore.collection('participantes').doc(participanteId).get().then(p => {
@@ -40,7 +39,7 @@ exports.handler = async function(context, event, callback) {
     switch(state) {
         case 'render':
             await client.messages.create({
-                from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
+                from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER_TDC}`,
                 to: `whatsapp:${participante.phoneNumber}`,
                 body: 'Seu vídeo está sendo renderizado agora.'
             }).then(m => {
@@ -53,28 +52,46 @@ exports.handler = async function(context, event, callback) {
             // Carregar participante
             await firestore.collection('videomatik').doc(id).set({
                 downloadURL
-                // TODO: incluir demais dados
             }, { merge: true });
         
 
-
+            // Carregar dados do vídeo
             // const videoRequest = await videomatik.getOneVideoRequest(videoRequestId);
             // console.log(videoRequest.renderJob);
 
-            await client.messages.create({
-                from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
-                to: `whatsapp:${participante.phoneNumber}`,
-                body: 'Seu vídeo foi gerado com sucesso e você receberá ele em alguns instantes!\n\nQuer saber como desenvolvemos este serviço? Confira o código-fonte em https://github.com/luisleao/twilio_whatsapp_eventos'
-            });
+            
+            let mensagem = [];
+            mensagem.push(`Este vídeo foi feito pela API da Videomatik.`);
+            mensagem.push(`Você sabia que a Videomatik está sorteando uma Alexa Echo Dot para quem testar a API de criar vídeos? Passe no estande e saiba mais!`);
+            mensagem.push(``);
+            mensagem.push(`E se você quiser ver o código, confira e favorite este repositório: https://github.com/luisleao/twilio_whatsapp_eventos`);
 
+            
+            // Envio da mensagem de agradecimento
             await client.messages.create({
-                from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
+                from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER_TDC}`,
+                to: `whatsapp:${participante.phoneNumber}`,
+                body: mensagem.join('\n\n')
+            });
+            
+            // Envio do video
+            await client.messages.create({
+                from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER_TDC}`,
                 to: `whatsapp:${participante.phoneNumber}`,
                 body: 'Aqui está seu vídeo',
                 mediaUrl: downloadURL //videoRequest.renderJob.downloadURL //`https://leao.ngrok.io/gateway?video=${videoRequest.renderJob.downloadURL}`
             }).then(m => {
                 console.log('FINISHED', m.sid);
             });
+
+
+            // Contador Videomatik
+
+            const axios = require('axios').default;
+            await axios.get('https://video-counter.vercel.app/api/increment');
+
+            // Adicionar pontos
+            
             break;
   
     }
