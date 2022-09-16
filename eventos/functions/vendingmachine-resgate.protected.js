@@ -59,6 +59,11 @@ exports.handler = async function(context, event, callback) {
             }
         });
 
+    if (!(participanteGeral.isAdmin || participanteGeral.twilion) && participante.resgates > process.env.LIMITE_RESGATES) {
+        console.log('Limite de resgate alcançado!');
+        return callback(null, `Você pode resgatar até ${process.env.LIMITE_RESGATES} itens.`);
+    }
+
     if (!participanteGeral || !participante) {
         // Erro - produto não encontrado!
         console.log('Participante não encontrado!');
@@ -139,11 +144,31 @@ exports.handler = async function(context, event, callback) {
         createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
+    
+    // Registrar contador de resgates da vending
+    let vendingResgateRef = firestore.collection('vendingmachine')
+        .doc(process.env.VENDINGMACHINE_DEFAULT);
+
+    batch.set(vendingResgateRef, {
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        resgates: admin.firestore.FieldValue.increment(1)
+    }, { merge: true });
+
+
+    // Registrar contador de resgates do evento
+    let eventoRef = firestore.collection('events')
+        .doc(event.evento);
+
+    batch.set(eventoRef, {
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        resgates: admin.firestore.FieldValue.increment(1)
+    }, { merge: true });
+
 
 
     await batch.commit();
     console.log('BATCH FINALIZADO!');
 
-    return callback(null, `Seu resgate foi realizado com sucesso!\n\nRetire seu item na vending machine.`);
+    return callback(null, `Seu resgate foi realizado com sucesso!\n\nRetire seu item na vending machine.\n\nVocê pode resgatar até ${process.env.LIMITE_RESGATES} itens.`);
 
 };
