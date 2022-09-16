@@ -13,8 +13,49 @@ const fs = require('fs');
 
 const DICIONARIO = fs.readFileSync(Runtime.getAssets()['/pt-br.txt'].path, 'utf-8').split('\n');
 
+const PALAVRAS_FILTRO = [
+    'VENDA',
+    'AJUDA',
+    'LEADS',
+    'VIDEO',
+    'LIVRE',
+    'FALAR',
+    'FELIZ',
+    'OUVIR',
+    'LIGAR',
+    'RAMAL',
+    'UNICO',
+    'VALOR',
+    'VISAO',
+    'ZELAR',
+    'AMIGO',
+    'BOLHA',
+    'BOTAO',
+    'CANAL',
+    'CRIAR',
+    'LIDER',
+    'MUNDO',
+    'NIVEL',
+    'ROLHA',
+    'RADAR',
+    'TOTAL',
+    'UNIAO',
+    'PRATA',
+    'PORTA',
+    'PONTE',
+    'PAPEL',
+    'OLHAR',
+    'OLHOS',
+    'ONDAS',
+    'MURAL',
+    'MUNDO',
+    'MUDAR',
+    'IDEIA',
+    'FONTE'
+]
 const palavraAleatoria = () => {
-    return DICIONARIO[DICIONARIO.length * Math.random() | 0];
+    return PALAVRAS_FILTRO[PALAVRAS_FILTRO.length * Math.random() | 0];
+    // return DICIONARIO[DICIONARIO.length * Math.random() | 0];
 }
 
 /*
@@ -126,14 +167,17 @@ exports.handler = async function(context, event, callback) {
             jogo.ganhou = true;
             jogo.finalizado = true;
             mensagem.push(`🔥 Parabéns!\nVocê acertou a palavra correta com ${jogo.tentativas} de ${process.env.GAME_TENTATIVAS_MAXIMO} palpites!`);
+            mensagem.push(`Você pode resgatar até ${process.env.LIMITE_RESGATES} itens hoje.`)
 
         } else {
             jogo.ganhou = false;
 
             if (jogo.tentativas >= parseInt(process.env.GAME_TENTATIVAS_MAXIMO)) {
                 jogo.finalizado = true;
+                
                 mensagem.push(`Você não conseguiu acertar a palavra *${jogo.palavra.toUpperCase()}*!`);
                 mensagem.push(`Uma nova palavra foi gerada e você pode continuar jogando!`);
+
             } else {
                 mensagem.push(`Tentativa ${jogo.tentativas}/${process.env.GAME_TENTATIVAS_MAXIMO}`);
             }
@@ -146,13 +190,16 @@ exports.handler = async function(context, event, callback) {
             if (jogo.ganhou) {               
 
                 switch(jogo.tentativas) {
-                    case 1: jogo.pontos = 15; break;
-                    case 2: jogo.pontos = 10; break;
-                    case 3: jogo.pontos = 5; break;
-                    case 4: jogo.pontos = 2; break;
-                    case 5: jogo.pontos = 1; break;
+                    case 1: jogo.pontos = 15; break; // 15
+                    case 2: jogo.pontos = 10; break; // 10
+                    case 3: jogo.pontos = 5; break; // 5
+                    case 4: jogo.pontos = 2; break; // 2
+                    case 5: jogo.pontos = 1; break; // 1
+                    // default: jogo.pontos = 1;
                 }
 
+            } else {
+                jogo.pontos = 1;
             }
             // TODO: adicionar registro de jogos ganhos, perdas, e tentativas
             let gameStats = {
@@ -176,6 +223,7 @@ exports.handler = async function(context, event, callback) {
 
             if (jogo.pontos > 0) {
                 mensagem.push(`Você ganhou *${jogo.pontos}* ⭐️!`);
+                mensagem.push('Quer resgatar seus pontos? Vá até a vending machine e envie *RESGATE* aqui.');
 
                 // Adicionar pontuação
                 await firestore.collection('events')
@@ -197,7 +245,7 @@ exports.handler = async function(context, event, callback) {
                     jogo
                 });
 
-            mensagem.push(`Jogue novamente enviando uma nova palavra de 5 letras para adivinhar uma outra palavra escolhida aleatoriamente e ganhar ⭐️`);
+            mensagem.push(`Jogue novamente enviando uma nova palavra de 5 letras para adivinhar uma outra palavra escolhida aleatoriamente e ganhar ⭐️. Quer saber quantos pontos possui? Envie *PONTOS*!`);
         }
 
         await firestore.collection('events')
@@ -209,123 +257,10 @@ exports.handler = async function(context, event, callback) {
 
     }
 
-    mensagem.push('');
-    mensagem.push(`PALAVRA: ${jogo.palavra}`);
-    // mensagem.push(`Está no dicionário? ${estaNoDicionario ? 'SIM' : 'NÃO'}`);
+    // DEMO:
+    // mensagem.push('');
+    // mensagem.push(`PALAVRA: ${jogo.palavra}`);
 
-
-
-    // console.log('EVENT', event);
-
-
-
-    // // // Registrar participante na base geral
-    // // await firestore.collection('participantes')
-    // //     .doc(participanteId).set({
-    // //         phoneNumber: limpaNumero(event.from),
-    // //         profileName: event.profileName,
-    // //         ultimoEvento: event.evento,
-    // //         updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    // //     }, { merge: true });
-    
-    // let participanteGeral = await firestore.collection('participantes')
-    //     .doc(participanteId).get().then(async s => {
-    //         if (s.exists) {
-    //             return s.data();
-    //         } else {
-    //             return null
-    //         }
-    // });
-
-
-
-
-
-
-    // let produtoVending = await firestore.collection('vendingmachine')
-    //     .doc(process.env.VENDINGMACHINE_DEFAULT).collection('estoque')
-    //     .doc(event.codigoItem).get().then(s => {
-    //         if (s.exists) {
-    //             return s.data();
-    //         } else {
-    //             return null;
-    //         }
-    //     });
-
-    // if (!participanteGeral || !participante) {
-    //     // Erro - produto não encontrado!
-    //     console.log('Participante não encontrado!');
-    //     return callback(null, `Ocorreu um erro no seu registro!\n\nInforme ao time da Twilio!`);
-    // }
-
-    // if (!produtoVending) {
-    //     // Erro - produto não encontrado!
-    //     console.log('Produto não encontrado!');
-    //     return callback(null, `O código informado não foi encontrado!`);
-    // }
-
-    // // Verificar estoque do produto selecionado
-    // if (produtoVending.estoque <= 0) {
-    //     // Erro - produto sem estoque
-    //     console.log('Produto SEM ESTOQUE!');
-    //     return callback(null, `O produto selecionado está sem estoque!\n\nSeus pontos não serão descontados.`);
-
-    // }
-
-    // // Verificar pontos do produto selecionado
-    // // Verificar pontuação de participante
-    // if (!(participanteGeral.isAdmin || participanteGeral.twilion) && participante.pontosCorrente < produtoVending.pontos) {
-    //     // TODO: erro - participante sem pontuação mínima e participante não Admin/Twilion
-    //     console.log('PARTICIPANTE SEM PONTOS!');
-    //     return callback(null, `Para resgatar este produto, você precisa de ${produtoVending.pontos} pontos.\n\nSua pontuação atual é de ${participante.pontosCorrente} ponto(s).`);
-
-    // }
-
-
-    // console.log('RODANDO BATCH');
-    // // Descontar pontos de participante
-    // const batch = firestore.batch();
-
-    // let participanteRef = firestore.collection('events')
-    //     .doc(event.evento).collection('participantes')
-    //     .doc(participanteId);
-
-    // batch.set(participanteRef, {
-    //     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    //     pontosCorrente: admin.firestore.FieldValue.increment((participanteGeral.isAdmin || participanteGeral.twilion) ? 0 : produtoVending.pontos * -1),
-    //     resgates: admin.firestore.FieldValue.increment(1)
-    // }, { merge: true });
-
-
-    // // Descontar estoque do produto selecionado
-    // let vendingRef = firestore.collection('vendingmachine')
-    //     .doc(process.env.VENDINGMACHINE_DEFAULT).collection('estoque')
-    //     .doc(event.codigoItem);
-
-    // batch.set(vendingRef, {
-    //     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    //     estoque: admin.firestore.FieldValue.increment(-1)
-    // }, { merge: true });
-
-
-    // // Enviar comando para vending machine
-    // let comandoRef = firestore.collection('vendingmachine')
-    //     .doc(process.env.VENDINGMACHINE_DEFAULT).collection('comandos')
-    //     .doc()
-
-    // batch.set(comandoRef, {
-    //     codigo: event.codigoItem,
-    //     status: 'pending',
-    //     createdAt: admin.firestore.FieldValue.serverTimestamp()
-    // });
-
-    // // TODO: add resgates ao participante
-
-
-    // await batch.commit();
-    // console.log('BATCH FINALIZADO!');
-
-    // return callback(null, `Seu resgate foi realizado com sucesso!\n\nRetire seu item na vending machine.`);
     data.mensagem = mensagem.join('\n\n');
     callback(null, data);
 
