@@ -1,0 +1,514 @@
+{
+  "description": "A New Flow",
+  "states": [
+    {
+      "name": "Trigger",
+      "type": "trigger",
+      "transitions": [
+        {
+          "event": "incomingMessage"
+        },
+        {
+          "event": "incomingCall"
+        },
+        {
+          "event": "incomingConversationMessage"
+        },
+        {
+          "event": "incomingRequest"
+        },
+        {
+          "next": "verifica-twilion",
+          "event": "incomingParent"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    },
+    {
+      "name": "twilion-erro",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 260,
+          "y": 590
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "O seu perfil não tem acesso a essa função!"
+      }
+    },
+    {
+      "name": "verifica-twilion",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "twilion-erro",
+          "event": "noMatch"
+        },
+        {
+          "next": "participante",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Twilion Confirmado",
+              "arguments": [
+                "{{trigger.parent.parameters.twilion}}"
+              ],
+              "type": "matches_any_of",
+              "value": "true,True,1"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{trigger.parent.parameters.twilion}}",
+        "offset": {
+          "x": 410,
+          "y": 320
+        }
+      }
+    },
+    {
+      "name": "participante",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "verifica-id-participante",
+          "event": "incomingMessage"
+        },
+        {
+          "next": "erro-finaliza",
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 650,
+          "y": 590
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "body": "What's the participant ID?\n\nYou can scan the QRCode and send here.",
+        "timeout": "120"
+      }
+    },
+    {
+      "name": "erro-finaliza",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 890,
+          "y": 920
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "You didn't send the participant ID.\n\nTo begin the process again, please sent *BRINDE*."
+      }
+    },
+    {
+      "name": "erro-id-invalido",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 210,
+          "y": 1170
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Invalid participant ID!\n\nTo begin the process again, please sent *BRINDE*."
+      }
+    },
+    {
+      "name": "verifica-id-participante",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "erro-id-invalido",
+          "event": "noMatch"
+        },
+        {
+          "next": "verifica-participante-pontos",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "ID Válido",
+              "arguments": [
+                "{{widgets.participante.inbound.Body}}"
+              ],
+              "type": "regex",
+              "value": "[a-f0-9]{32}"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.participante.inbound.Body}}",
+        "offset": {
+          "x": 400,
+          "y": 910
+        }
+      }
+    },
+    {
+      "name": "verifica-participante-pontos",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "pontos",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": 640,
+          "y": 1210
+        },
+        "function_sid": "ZH7ca0295aad1a389f949fd0b5780cf6dd",
+        "parameters": [
+          {
+            "value": "{{trigger.parent.parameters.evento}}",
+            "key": "evento"
+          },
+          {
+            "value": "{{widgets.participante.inbound.Body}}",
+            "key": "token"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/verifica-participante-pontos"
+      }
+    },
+    {
+      "name": "verifica-desconto-pontos",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "erro-participante-sem-pontos",
+          "event": "noMatch"
+        },
+        {
+          "next": "send_message_4",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Sim",
+              "arguments": [
+                "{{widgets.verifica-participante-pontos.parsed.podeDescontarPontos}}"
+              ],
+              "type": "matches_any_of",
+              "value": "true,True,1"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.verifica-participante-pontos.parsed.podeDescontarPontos}}",
+        "offset": {
+          "x": 1260,
+          "y": 2330
+        }
+      }
+    },
+    {
+      "name": "erro-participante-sem-pontos",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 1020,
+          "y": 2690
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "*{{widgets.verifica-participante-pontos.parsed.participante.nome}}* don't have points to withdraw\n\nPhone Number: {{widgets.verifica-participante-pontos.parsed.participante.phoneNumber}}\n\nAvailable Points: {{widgets.verifica-participante-pontos.parsed.pontosCorrente}}\nAccumulated Points: {{widgets.verifica-participante-pontos.parsed.pontosAcumulados}}"
+      }
+    },
+    {
+      "name": "pontos",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "verifica-desconto-valido",
+          "event": "incomingMessage"
+        },
+        {
+          "next": "erro-sem-resposta",
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 850,
+          "y": 1770
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "body": "*{{widgets.verifica-participante-pontos.parsed.participante.nome}}*\n\nPhone Number: {{widgets.verifica-participante-pontos.parsed.participante.phoneNumber}}\n\nAvailable Points: {{widgets.verifica-participante-pontos.parsed.pontosCorrente}}\nAccumulated Points: {{widgets.verifica-participante-pontos.parsed.pontosAcumulados}}\n\nHow many points would you like to withdraw?\n\n\n\n*INFORM NEGATIVE VALUE TO ADD POINTS!*",
+        "timeout": "60"
+      }
+    },
+    {
+      "name": "erro-sem-resposta",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 1150,
+          "y": 2050
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Timeout!\n\nTo begin the process again, please sent *BRINDE*."
+      }
+    },
+    {
+      "name": "send_message_4",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "add-pontos",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 1380,
+          "y": 2690
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "WITHDRAWING\n*{{widgets.pontos.inbound.Body}} POINTS*"
+      }
+    },
+    {
+      "name": "verifica-desconto-valido",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "erro-pontos-invalidos",
+          "event": "noMatch"
+        },
+        {
+          "next": "send_message_2",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Dar Pontos",
+              "arguments": [
+                "{{widgets.pontos.inbound.Body}}"
+              ],
+              "type": "less_than",
+              "value": "0"
+            }
+          ]
+        },
+        {
+          "next": "verifica-desconto-pontos",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Descontar Pontos",
+              "arguments": [
+                "{{widgets.pontos.inbound.Body}}"
+              ],
+              "type": "less_than",
+              "value": "{{widgets.verifica-participante-pontos.parsed.pontosCorrente | plus : 1}}"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.pontos.inbound.Body}}",
+        "offset": {
+          "x": 650,
+          "y": 2060
+        }
+      }
+    },
+    {
+      "name": "erro-pontos-invalidos",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 440,
+          "y": 2350
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Value can't be above {{widgets.verifica-participante-pontos.parsed.participante.pontosCorrente}}!\n\nTo begin the process again, please sent *BRINDE*."
+      }
+    },
+    {
+      "name": "send_message_2",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "add-pontos",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 810,
+          "y": 2340
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "ADDING\n*{{widgets.pontos.inbound.Body | abs}} POINTS*..."
+      }
+    },
+    {
+      "name": "add-pontos",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "retorno-add-pontos",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": 870,
+          "y": 3060
+        },
+        "function_sid": "ZHa73d0627b6b0097a68bf64856d1deff0",
+        "parameters": [
+          {
+            "value": "{{trigger.parent.parameters.evento}}",
+            "key": "evento"
+          },
+          {
+            "value": "{{widgets.participante.inbound.Body}}",
+            "key": "token"
+          },
+          {
+            "value": "{{trigger.message.To}}",
+            "key": "to"
+          },
+          {
+            "value": "{{widgets.pontos.inbound.Body}}",
+            "key": "points"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/add-pontos"
+      }
+    },
+    {
+      "name": "retorno-add-pontos",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 960,
+          "y": 3360
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "{{widgets.add-pontos.parsed.mensagem}}"
+      }
+    }
+  ],
+  "initial_state": "Trigger",
+  "flags": {
+    "allow_concurrent_calls": true
+  }
+}

@@ -1,0 +1,1893 @@
+{
+  "description": "A New Flow",
+  "states": [
+    {
+      "name": "Trigger",
+      "type": "trigger",
+      "transitions": [
+        {
+          "next": "set-evento",
+          "event": "incomingMessage"
+        },
+        {
+          "event": "incomingCall"
+        },
+        {
+          "event": "incomingConversationMessage"
+        },
+        {
+          "event": "incomingRequest"
+        },
+        {
+          "event": "incomingParent"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 500,
+          "y": -760
+        }
+      }
+    },
+    {
+      "name": "possui_imagem",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "tipo_mensagem",
+          "event": "noMatch"
+        },
+        {
+          "next": "define-imagem-videomatik",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "SIM",
+              "arguments": [
+                "{{trigger.message.MediaContentType0}}"
+              ],
+              "type": "matches_any_of",
+              "value": "image/jpeg"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{trigger.message.MediaContentType0}}",
+        "offset": {
+          "x": -90,
+          "y": 330
+        }
+      }
+    },
+    {
+      "name": "verifica-participante",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "possui_optin",
+          "event": "success"
+        },
+        {
+          "next": "possui_imagem",
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": 360,
+          "y": -90
+        },
+        "function_sid": "ZHe93d90182c78a208e9017b9e16633114",
+        "parameters": [
+          {
+            "value": "{{trigger.message.From}}",
+            "key": "from"
+          },
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/verifica-participante"
+      }
+    },
+    {
+      "name": "possui_optin",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "possui_imagem",
+          "event": "noMatch"
+        },
+        {
+          "next": "pedir-optin",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "NOVO",
+              "arguments": [
+                "{{widgets.verifica-participante.parsed.participante.recebeuOptin}}"
+              ],
+              "type": "matches_any_of",
+              "value": "0,false,False"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.verifica-participante.parsed.participante.recebeuOptin}}",
+        "offset": {
+          "x": 750,
+          "y": 200
+        }
+      }
+    },
+    {
+      "name": "tipo_mensagem",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "verifica-sorteio-palavra",
+          "event": "noMatch"
+        },
+        {
+          "next": "verifica-networking",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Networking",
+              "arguments": [
+                "{{trigger.message.Body | strip | downcase}}"
+              ],
+              "type": "regex",
+              "value": "[a-f0-9]{32}"
+            }
+          ]
+        },
+        {
+          "next": "verifica-avaliacao",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Avaliação",
+              "arguments": [
+                "{{trigger.message.Body | strip | downcase}}"
+              ],
+              "type": "regex",
+              "value": "tdc[0-9]{5}"
+            }
+          ]
+        },
+        {
+          "next": "add-impressao",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Impressão",
+              "arguments": [
+                "{{trigger.message.Body | strip | downcase}}"
+              ],
+              "type": "matches_any_of",
+              "value": "imprime1,imprime2"
+            }
+          ]
+        },
+        {
+          "next": "run-twilion",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "TWILION",
+              "arguments": [
+                "{{trigger.message.Body | strip | downcase}}"
+              ],
+              "type": "matches_any_of",
+              "value": "brinde"
+            }
+          ]
+        },
+        {
+          "next": "run-sorteio",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "SORTEIO",
+              "arguments": [
+                "{{trigger.message.Body | strip | downcase}}"
+              ],
+              "type": "matches_any_of",
+              "value": "sorteio"
+            }
+          ]
+        },
+        {
+          "next": "videomatik",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "VIDEOMATIC",
+              "arguments": [
+                "{{trigger.message.Body | strip | downcase}}"
+              ],
+              "type": "matches_any_of",
+              "value": "videomatik"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{trigger.message.Body | strip | downcase}}",
+        "offset": {
+          "x": -310,
+          "y": 710
+        }
+      }
+    },
+    {
+      "name": "registro-videomatik",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "retorno-videomatik",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": -1100,
+          "y": 980
+        },
+        "function_sid": "ZH1cdba46d86660422872b0761bd089d21",
+        "parameters": [
+          {
+            "value": "{{trigger.message.From}}",
+            "key": "from"
+          },
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          },
+          {
+            "value": "{{flow.variables.imagem}}",
+            "key": "imagem"
+          },
+          {
+            "value": "Sua imagem foi enviada para a Videomatik.<e><e>Você receberá notificações quando seu vídeo estiver pronto.",
+            "key": "mensagemSucesso"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/add-videomatik"
+      }
+    },
+    {
+      "name": "verifica-networking",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "send_message_3",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": -270,
+          "y": 1210
+        },
+        "function_sid": "ZHb5b28fcfea0c1d2040eb2d1a7f7e6747",
+        "parameters": [
+          {
+            "value": "{{trigger.message.Body}}",
+            "key": "token"
+          },
+          {
+            "value": "{{trigger.message.From}}",
+            "key": "from"
+          },
+          {
+            "value": "{{trigger.message.To}}",
+            "key": "to"
+          },
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/verifica-networking"
+      }
+    },
+    {
+      "name": "acao",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "verifica-acao",
+          "event": "incomingMessage"
+        },
+        {
+          "next": "fallback-sem-resposta",
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -810,
+          "y": 1520
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "body": "{{widgets.verifica-participante.parsed.mensagem}}",
+        "timeout": "120"
+      }
+    },
+    {
+      "name": "verifica-acao",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "verifica_possui_imagem",
+          "event": "noMatch"
+        },
+        {
+          "next": "split-agendamento-existente",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Fotografia",
+              "arguments": [
+                "{{widgets.acao.inbound.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "1,fotografia,foto,agendar,agendamento,cancelar,sair,sair da fila,1️⃣"
+            }
+          ]
+        },
+        {
+          "next": "linkedin",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Networking",
+              "arguments": [
+                "{{widgets.acao.inbound.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "2,networking,2️⃣"
+            }
+          ]
+        },
+        {
+          "next": "run-twilion-interno",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "TWILION",
+              "arguments": [
+                "{{widgets.acao.inbound.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "brinde"
+            }
+          ]
+        },
+        {
+          "next": "run-sorteio-interno",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "SORTEIO",
+              "arguments": [
+                "{{widgets.acao.inbound.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "sorteio"
+            }
+          ]
+        },
+        {
+          "next": "send_message_2",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Videomatik",
+              "arguments": [
+                "{{widgets.acao.inbound.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "3,video,vídeo"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.acao.inbound.Body}}",
+        "offset": {
+          "x": -880,
+          "y": 1820
+        }
+      }
+    },
+    {
+      "name": "verifica-avaliacao",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "status-avaliacao",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": 130,
+          "y": 1330
+        },
+        "function_sid": "ZHec3f621653a3f7e1ce127da37ee45929",
+        "url": "https://eventos-2246-dev.twil.io/verifica-avaliacao"
+      }
+    },
+    {
+      "name": "status-avaliacao",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "Copy_of_send_message_3",
+          "event": "noMatch"
+        },
+        {
+          "next": "Copy_of_send_message_3",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Existe",
+              "arguments": [
+                "{{widgets.verifica-avaliacao.parsed.existe}}"
+              ],
+              "type": "equal_to",
+              "value": "true,True,1"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.verifica-avaliacao.parsed.existe}}",
+        "offset": {
+          "x": 320,
+          "y": 1740
+        }
+      }
+    },
+    {
+      "name": "pedir-optin",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "split-resposta-optin",
+          "event": "incomingMessage"
+        },
+        {
+          "next": "optin-semresposta",
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 1050,
+          "y": 590
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "body": "A ROGA DX quer enviar avisos e novidades por WhatsApp nas próximas edições.\n\nVocê autoriza o envio de mensagens por este canal? Ao autorizar, a organização da ROGA DX receberá seu número de telefone.\n\nResponda com *SIM* ou *NÃO*",
+        "timeout": "120"
+      }
+    },
+    {
+      "name": "optin-semresposta",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "pedir-optin",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 1550,
+          "y": 820
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Você precisa responder esta mensagem com *SIM* ou *NÃO*"
+      }
+    },
+    {
+      "name": "add-optin",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "optin-registro",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": 1160,
+          "y": 1390
+        },
+        "function_sid": "ZHb59008283108af6fd4d56f0a5c5cb2c1",
+        "parameters": [
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          },
+          {
+            "value": "{{trigger.message.From}}",
+            "key": "from"
+          },
+          {
+            "value": "{{flow.variables.optin}}",
+            "key": "optin"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/add-optin"
+      }
+    },
+    {
+      "name": "set-evento",
+      "type": "set-variables",
+      "transitions": [
+        {
+          "next": "verifica-participante",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "variables": [
+          {
+            "value": "thasfin",
+            "key": "evento"
+          }
+        ],
+        "offset": {
+          "x": 540,
+          "y": -480
+        }
+      }
+    },
+    {
+      "name": "fallback-sem-resposta",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -280,
+          "y": 1920
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "O tempo esperado para resposta foi alcançado.\n\nA qualquer momento que queira interagir novamente, consultar sua posição na fila ou ativar algum conteúdo, fique à vontade para mandar uma mensagem."
+      }
+    },
+    {
+      "name": "linkedin",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "split-linkedin-valido",
+          "event": "incomingMessage"
+        },
+        {
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 120,
+          "y": 2150
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "body": "Qual a URL do seu LinkedIn?\n\n(Informe a URL completa)",
+        "timeout": "240"
+      }
+    },
+    {
+      "name": "confirma-add-linkedin",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "add-linkedin",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 330,
+          "y": 2710
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Um momento... Estou adicionando a URL abaixo no banco de dados:\n\n*{{widgets.linkedin.inbound.Body}}*"
+      }
+    },
+    {
+      "name": "add-fila-confirma",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "add-fila-foto",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -2370,
+          "y": 2860
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Um momento.\n\nEstou adicionando você na fila..."
+      }
+    },
+    {
+      "name": "confirma-remove-fila",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "verifica-confirma-remove-fila",
+          "event": "incomingMessage"
+        },
+        {
+          "next": "fallback-remocao-cancelada",
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -1200,
+          "y": 2380
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "body": "Você está no *{{widgets.verifica-participante.parsed.agendamentoPosicao}}º lugar* na fila de {{widgets.verifica-participante.parsed.agendamentoTotal}} registros.\n\nVocê confirma que realmente quer sair da fila?\n\nResponsa *SIM* ou *NÃO*",
+        "timeout": "60"
+      }
+    },
+    {
+      "name": "split-agendamento-existente",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "verifica-nome",
+          "event": "noMatch"
+        },
+        {
+          "next": "confirma-remove-fila",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Possui Agendamento",
+              "arguments": [
+                "{{widgets.verifica-participante.parsed.agendamento}}"
+              ],
+              "type": "is_not_blank",
+              "value": "Is Not Blank"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.verifica-participante.parsed.agendamento}}",
+        "offset": {
+          "x": -1460,
+          "y": 2120
+        }
+      }
+    },
+    {
+      "name": "verifica-confirma-remove-fila",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "fallback-remocao-cancelada",
+          "event": "noMatch"
+        },
+        {
+          "next": "remove-fila-foto",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "REMOVE",
+              "arguments": [
+                "{{widgets.confirma-remove-fila.inbound.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "y,s,sim,remover,confirmo"
+            }
+          ]
+        },
+        {
+          "next": "remove-agendamento-cancelado",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "CONTINUAR",
+              "arguments": [
+                "{{widgets.confirma-remove-fila.inbound.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "não,nao,n,cancelar,continuar,ficar"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.confirma-remove-fila.inbound.Body}}",
+        "offset": {
+          "x": -720,
+          "y": 2610
+        }
+      }
+    },
+    {
+      "name": "remove-agendamento-cancelado",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -410,
+          "y": 2900
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Sem problemas...\nVou manter você na fila."
+      }
+    },
+    {
+      "name": "fallback-remocao-cancelada",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -1090,
+          "y": 2910
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Você não respondeu *SIM* ou *NÃO*.\n\nVou te manter na fila."
+      }
+    },
+    {
+      "name": "add-fila-foto",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "retorno-add-fila",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": -2160,
+          "y": 3180
+        },
+        "function_sid": "ZH206219336a0c72d2efa5245f26250f22",
+        "parameters": [
+          {
+            "value": "{{trigger.message.From}}",
+            "key": "from"
+          },
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/add-fila-fotografia"
+      }
+    },
+    {
+      "name": "retorno-add-fila",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -2060,
+          "y": 3470
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "{{widgets.add-fila-foto.parsed.mensagem}}"
+      }
+    },
+    {
+      "name": "remove-fila-foto",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "retorno-remove-fila",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": -730,
+          "y": 2940
+        },
+        "function_sid": "ZH77e458c751a942911b74713e37d6a462",
+        "parameters": [
+          {
+            "value": "{{trigger.message.From}}",
+            "key": "from"
+          },
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/remove-fila-fotografia"
+      }
+    },
+    {
+      "name": "retorno-remove-fila",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -650,
+          "y": 3220
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "{{widgets.remove-fila-foto.parsed.mensagem}}"
+      }
+    },
+    {
+      "name": "verifica_possui_imagem",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "event": "noMatch"
+        },
+        {
+          "next": "define-imagem-videomatik-retorno",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "SIM",
+              "arguments": [
+                "{{widgets.acao.inbound.MediaContentType0}}"
+              ],
+              "type": "matches_any_of",
+              "value": "image/jpeg"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.acao.inbound.MediaContentType0}}",
+        "offset": {
+          "x": -1160,
+          "y": 1530
+        }
+      }
+    },
+    {
+      "name": "retorno-videomatik",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -1130,
+          "y": 1220
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "{{widgets.registro-videomatik.parsed.mensagem}}",
+        "media_url": "{{widgets.registro-videomatik.parsed.mediaUrl}}"
+      }
+    },
+    {
+      "name": "define-imagem-videomatik",
+      "type": "set-variables",
+      "transitions": [
+        {
+          "next": "send_message_1",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "variables": [
+          {
+            "value": "{{trigger.message.MediaUrl0}}",
+            "key": "imagem"
+          }
+        ],
+        "offset": {
+          "x": -1140,
+          "y": 750
+        }
+      }
+    },
+    {
+      "name": "define-imagem-videomatik-retorno",
+      "type": "set-variables",
+      "transitions": [
+        {
+          "next": "send_message_1",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "variables": [
+          {
+            "value": "{{widgets.acao.inbound.MediaUrl0}}",
+            "key": "imagem"
+          }
+        ],
+        "offset": {
+          "x": -1490,
+          "y": 750
+        }
+      }
+    },
+    {
+      "name": "send_message_3",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -40,
+          "y": 1650
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "{{widgets.verifica-networking.parsed.mensagem}}"
+      }
+    },
+    {
+      "name": "Copy_of_send_message_3",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 580,
+          "y": 2050
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "TODO: CONTINUAR PROCESSO AVALIACAO OU EXIBIR ERRO CASO NAO EXISTA A CHAVE."
+      }
+    },
+    {
+      "name": "split-resposta-optin",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "optin-semresposta",
+          "event": "noMatch"
+        },
+        {
+          "next": "define-optin-aprovado",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Sim",
+              "arguments": [
+                "{{widgets.pedir-optin.inbound.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "sim,s,y,confirmo,aprovo,autorizo"
+            }
+          ]
+        },
+        {
+          "next": "define-optin-rejeitado",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Não",
+              "arguments": [
+                "{{widgets.pedir-optin.inbound.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "n,não,nao,negado,não quero"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.pedir-optin.inbound.Body}}",
+        "offset": {
+          "x": 950,
+          "y": 840
+        }
+      }
+    },
+    {
+      "name": "define-optin-aprovado",
+      "type": "set-variables",
+      "transitions": [
+        {
+          "next": "add-optin",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "variables": [
+          {
+            "value": "1",
+            "key": "optin"
+          }
+        ],
+        "offset": {
+          "x": 1010,
+          "y": 1120
+        }
+      }
+    },
+    {
+      "name": "define-optin-rejeitado",
+      "type": "set-variables",
+      "transitions": [
+        {
+          "next": "add-optin",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "variables": [
+          {
+            "value": "0",
+            "key": "optin"
+          }
+        ],
+        "offset": {
+          "x": 1350,
+          "y": 1120
+        }
+      }
+    },
+    {
+      "name": "optin-registro",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "possui_imagem",
+          "event": "incomingMessage"
+        },
+        {
+          "next": "possui_imagem",
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 1440,
+          "y": 1670
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "body": "{{widgets.add-optin.parsed.mensagem}}",
+        "timeout": "5"
+      }
+    },
+    {
+      "name": "split-linkedin-valido",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "linkeidn-invalido",
+          "event": "noMatch"
+        },
+        {
+          "next": "confirma-add-linkedin",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Valido",
+              "arguments": [
+                "{{widgets.linkedin.inbound.Body | strip}}"
+              ],
+              "type": "regex",
+              "value": "^(http(s)?:\\/\\/)?([\\w]+\\.)?linkedin\\.com\\/(pub|in|profile)\\/([a-z0-9-_\\.\\%\\-]+)(\\/)?"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.linkedin.inbound.Body | strip}}",
+        "offset": {
+          "x": 230,
+          "y": 2410
+        }
+      }
+    },
+    {
+      "name": "linkeidn-invalido",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "linkedin",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -10,
+          "y": 2710
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "A URL informada é inválida.\n\nVocê deve informar apenas o endereço completo da url do seu perfil!"
+      }
+    },
+    {
+      "name": "add-linkedin",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "retorno-add-linkedin",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": 420,
+          "y": 2980
+        },
+        "function_sid": "ZHadee65fd3c6e82a55f0aaa58377e8961",
+        "parameters": [
+          {
+            "value": "{{trigger.message.From}}",
+            "key": "from"
+          },
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          },
+          {
+            "value": "{{widgets.linkedin.inbound.Body | strip | downcase}}",
+            "key": "linkedin"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/add-linkedin"
+      }
+    },
+    {
+      "name": "retorno-add-linkedin",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 510,
+          "y": 3220
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "{{widgets.add-linkedin.parsed.mensagem}}",
+        "media_url": "{{widgets.add-linkedin.parsed.media}}"
+      }
+    },
+    {
+      "name": "add-impressao",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "retorno-add-impressao",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": 520,
+          "y": 1330
+        },
+        "function_sid": "ZH678eeb57da3995700a43114db4e5b3f3",
+        "parameters": [
+          {
+            "value": "{{trigger.message.From}}",
+            "key": "from"
+          },
+          {
+            "value": "{{trigger.message.To}}",
+            "key": "to"
+          },
+          {
+            "value": "{{trigger.message.Body}}",
+            "key": "token"
+          },
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/imprime-networking"
+      }
+    },
+    {
+      "name": "retorno-add-impressao",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 680,
+          "y": 1740
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Retire sua etiqueta no estande da Twilio!"
+      }
+    },
+    {
+      "name": "nome",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "add-nome",
+          "event": "incomingMessage"
+        },
+        {
+          "next": "erro-nome",
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -1620,
+          "y": 2360
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "body": "Qual seu nome?",
+        "timeout": "120"
+      }
+    },
+    {
+      "name": "erro-nome",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -1460,
+          "y": 2610
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Você não informou seu nome no tempo esperado.\n\nSerá necessário recomeçar o processo."
+      }
+    },
+    {
+      "name": "verifica-nome",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "add-fila-confirma",
+          "event": "noMatch"
+        },
+        {
+          "next": "nome",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "SEM NOME",
+              "arguments": [
+                "{{widgets.verifica-participante.parsed.participante.nome}}"
+              ],
+              "type": "is_blank",
+              "value": "Is Blank"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.verifica-participante.parsed.participante.nome}}",
+        "offset": {
+          "x": -2170,
+          "y": 2220
+        }
+      }
+    },
+    {
+      "name": "add-nome",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "retorno-add-nome",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": -1800,
+          "y": 2610
+        },
+        "function_sid": "ZHe64cc89f15429d843876ea29c04d372f",
+        "parameters": [
+          {
+            "value": "{{trigger.message.From}}",
+            "key": "from"
+          },
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          },
+          {
+            "value": "{{widgets.nome.inbound.Body}}",
+            "key": "nome"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/add-nome"
+      }
+    },
+    {
+      "name": "retorno-add-nome",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "add-fila-confirma",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -1720,
+          "y": 2840
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "{{widgets.add-nome.parsed.mensagem}}"
+      }
+    },
+    {
+      "name": "send_message_1",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "registro-videomatik",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -1720,
+          "y": 1020
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Você me enviou uma imagem...\n\nVou chamar a API da Videomatik para criar um vídeo dinâmico para você!"
+      }
+    },
+    {
+      "name": "run-twilion",
+      "type": "run-subflow",
+      "transitions": [
+        {
+          "event": "completed"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "flow_sid": "FW85477a0314f009596a1b97e21d5961a8",
+        "flow_revision": "LatestPublished",
+        "offset": {
+          "x": 50,
+          "y": 950
+        },
+        "parameters": [
+          {
+            "value": "{{widgets.verifica-participante.parsed.participante}}",
+            "key": "participante"
+          },
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          },
+          {
+            "value": "{{widgets.verifica-participante.parsed.participante.twilion}}",
+            "key": "twilion"
+          }
+        ]
+      }
+    },
+    {
+      "name": "run-sorteio",
+      "type": "run-subflow",
+      "transitions": [
+        {
+          "event": "completed"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "flow_sid": "FW9242ef54b383ec280d950b71dd67e499",
+        "flow_revision": "LatestPublished",
+        "offset": {
+          "x": 400,
+          "y": 950
+        },
+        "parameters": [
+          {
+            "value": "{{widgets.verifica-participante.parsed.participante}}",
+            "key": "participante"
+          },
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          },
+          {
+            "value": "{{widgets.verifica-participante.parsed.participante.gerenciaSorteio}}",
+            "key": "gerenciaSorteio"
+          }
+        ]
+      }
+    },
+    {
+      "name": "run-twilion-interno",
+      "type": "run-subflow",
+      "transitions": [
+        {
+          "event": "completed"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "flow_sid": "FW85477a0314f009596a1b97e21d5961a8",
+        "flow_revision": "LatestPublished",
+        "offset": {
+          "x": -540,
+          "y": 2330
+        },
+        "parameters": [
+          {
+            "value": "{{widgets.verifica-participante.parsed.participante}}",
+            "key": "participante"
+          },
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          },
+          {
+            "value": "{{widgets.verifica-participante.parsed.participante.twilion}}",
+            "key": "twilion"
+          }
+        ]
+      }
+    },
+    {
+      "name": "run-sorteio-interno",
+      "type": "run-subflow",
+      "transitions": [
+        {
+          "event": "completed"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "flow_sid": "FW9242ef54b383ec280d950b71dd67e499",
+        "flow_revision": "LatestPublished",
+        "offset": {
+          "x": -220,
+          "y": 2190
+        },
+        "parameters": [
+          {
+            "value": "{{widgets.verifica-participante.parsed.participante}}",
+            "key": "participante"
+          },
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          },
+          {
+            "value": "{{widgets.verifica-participante.parsed.participante.gerenciaSorteio}}",
+            "key": "gerenciaSorteio"
+          }
+        ]
+      }
+    },
+    {
+      "name": "verifica-sorteio-palavra",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "sorteio-valido",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": -700,
+          "y": 950
+        },
+        "function_sid": "ZHa9b5631174c0b6289fc7e032a9b0e476",
+        "parameters": [
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          },
+          {
+            "value": "{{trigger.message.Body | strip | downcase}}",
+            "key": "palavra"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/verifica-sorteio-palavra"
+      }
+    },
+    {
+      "name": "sorteio-valido",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "send_message_4",
+          "event": "noMatch"
+        },
+        {
+          "next": "add-sorteio-palavra",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Palavra Sorteio Valida",
+              "arguments": [
+                "{{widgets.verifica-sorteio-palavra.parsed.valida}}"
+              ],
+              "type": "matches_any_of",
+              "value": "true,True,1"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.verifica-sorteio-palavra.parsed.valida}}",
+        "offset": {
+          "x": -720,
+          "y": 1210
+        }
+      }
+    },
+    {
+      "name": "add-sorteio-palavra",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "retorno-add-sorteio",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": -470,
+          "y": 1460
+        },
+        "function_sid": "ZH0b7c4e6387c8421ad39ccc363fa0fdac",
+        "parameters": [
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          },
+          {
+            "value": "{{trigger.message.Body | strip | downcase}}",
+            "key": "palavra"
+          },
+          {
+            "value": "{{trigger.message.From}}",
+            "key": "from"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/add-sorteio-palavra"
+      }
+    },
+    {
+      "name": "retorno-add-sorteio",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -340,
+          "y": 1690
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "{{widgets.add-sorteio-palavra.parsed.mensagem}}"
+      }
+    },
+    {
+      "name": "send_message_2",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -540,
+          "y": 2120
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Envie sua foto agora!"
+      }
+    },
+    {
+      "name": "videomatik",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 530,
+          "y": 660
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Envie uma foto agora!"
+      }
+    },
+    {
+      "name": "send_message_4",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -1650,
+          "y": 1520
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "{{widgets.verifica-participante.parsed.mensagem}}"
+      }
+    }
+  ],
+  "initial_state": "Trigger",
+  "flags": {
+    "allow_concurrent_calls": true
+  }
+}

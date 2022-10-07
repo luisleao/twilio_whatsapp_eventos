@@ -1,0 +1,937 @@
+{
+  "description": "A New Flow",
+  "states": [
+    {
+      "name": "Trigger",
+      "type": "trigger",
+      "transitions": [
+        {
+          "next": "define-evento",
+          "event": "incomingMessage"
+        },
+        {
+          "event": "incomingCall"
+        },
+        {
+          "event": "incomingConversationMessage"
+        },
+        {
+          "event": "incomingRequest"
+        },
+        {
+          "event": "incomingParent"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -90,
+          "y": -620
+        }
+      }
+    },
+    {
+      "name": "verifica-comandos",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "verifica-palavra",
+          "event": "noMatch"
+        },
+        {
+          "next": "envia-pontos",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Pontos",
+              "arguments": [
+                "{{trigger.message.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "pontos"
+            }
+          ]
+        },
+        {
+          "next": "verifica-admin",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Resgate",
+              "arguments": [
+                "{{trigger.message.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "resgate, resgatar"
+            }
+          ]
+        },
+        {
+          "next": "check-participante-admin",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Estoque",
+              "arguments": [
+                "{{trigger.message.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "estoque"
+            }
+          ]
+        },
+        {
+          "next": "msg-regras",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Regras",
+              "arguments": [
+                "{{trigger.message.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "regras,regulamento"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{trigger.message.Body}}",
+        "offset": {
+          "x": 30,
+          "y": 220
+        }
+      }
+    },
+    {
+      "name": "verifica-palavra",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "padrao",
+          "event": "noMatch"
+        },
+        {
+          "next": "jogar",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Palavra",
+              "arguments": [
+                "{{trigger.message.Body | size}}"
+              ],
+              "type": "equal_to",
+              "value": "5"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{trigger.message.Body | size}}",
+        "offset": {
+          "x": -1270,
+          "y": 490
+        }
+      }
+    },
+    {
+      "name": "envia-pontos",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -160,
+          "y": 580
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "{% if widgets.verifica-participante.parsed.participante.pontosAcumulados > 0 %}\nSua pontuação atual: *{{widgets.verifica-participante.parsed.participante.pontosCorrente}} ponto{% if widgets.verifica-participante.parsed.participante.pontosCorrente > 1 %}s{% endif %}*.\n\nTotal de pontos acumulados: {{widgets.verifica-participante.parsed.participante.pontosAcumulados}} ponto{% if widgets.verifica-participante.parsed.participante.pontosAcumulados > 1 %}s{% endif %}.\n{% else %}\nVocê ainda não acumulou nenhum ponto.\n{% endif %}\n\nResgates realizados:  {{widgets.verifica-participante.parsed.participante.resgates | default : \"nenhum\"}}."
+      }
+    },
+    {
+      "name": "resultado-resgate",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 610,
+          "y": 2580
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "{{widgets.resgate.body}} \n\n\nCódigo: {{widgets.codigoItemResgate.inbound.Body}} \nProduto: {{widgets.verifica-participante.parsed.vendingmachine.items[widgets.codigoItemResgate.inbound.Body].nome}}"
+      }
+    },
+    {
+      "name": "retorno-jogo",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -1020,
+          "y": 1040
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "{{widgets.jogar.parsed.mensagem}}"
+      }
+    },
+    {
+      "name": "padrao",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -1420,
+          "y": 800
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Olá, bem-vindo(a) ao jogo de palavras da Bolha e Twilio no Casarão!\n\nTente adivinhar a palavra em até *5 tentativas* e ganhe ⭐️. A palavra é em português e tem 5 letras.\n\nPara começar, *digite uma palavra de 5 letras*, as letras que estiverem na posição correta ficarão marcadas com 🟩. As que existirem na palavra, mas estão na posição errada, ficarão com 🟨 e as que estão erradas com ⬛.\n\n\nEnvie *PONTOS* conferir suas ⭐️.\n\nEnvie *RESGATE* em frente a máquina para trocar suas ⭐️ por prêmios!\n\nPara ajuda, envie *REGRAS*."
+      }
+    },
+    {
+      "name": "msg-regras",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 820,
+          "y": -20
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Olá, bem-vindo(a) ao jogo de palavras da Bolha e Twilio no Casarão!\n\nTente adivinhar a palavra em até *5 tentativas* e ganhe ⭐️. A palavra é em português e tem 5 letras.\n\nPara começar, *digite uma palavra de 5 letras*, as letras que estiverem na posição correta ficarão marcadas com 🟩. As que existirem na palavra, mas estão na posição errada, ficarão com 🟨 e as que estão erradas com ⬛.\nEnvie *PONTOS* conferir suas ⭐️.\nEnvie *RESGATE* em frente a máquina para trocar suas ⭐️ por prêmios!\n\nPara ajuda, envie *REGRAS*."
+      }
+    },
+    {
+      "name": "erro-timeout",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 2330,
+          "y": 1220
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Limite de tempo de resposta alcançado!\n\nVocê precisa reiniciar o processo.\n\nEnvie novamente o comando desejado."
+      }
+    },
+    {
+      "name": "verifica-participante",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "verifica-comandos",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": 110,
+          "y": -20
+        },
+        "function_sid": "ZHe93d90182c78a208e9017b9e16633114",
+        "parameters": [
+          {
+            "value": "{{trigger.message.From}}",
+            "key": "from"
+          },
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          },
+          {
+            "value": "{{trigger.message.ProfileName}}",
+            "key": "profileName"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/verifica-participante"
+      }
+    },
+    {
+      "name": "check-participante-admin",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "erro-nao-admin",
+          "event": "noMatch"
+        },
+        {
+          "next": "codigoItem",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "ADMIN",
+              "arguments": [
+                "{{widgets.verifica-participante.parsed.participante.isAdmin}}"
+              ],
+              "type": "matches_any_of",
+              "value": "true,True,1"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.verifica-participante.parsed.participante.isAdmin}}",
+        "offset": {
+          "x": 1400,
+          "y": 510
+        }
+      }
+    },
+    {
+      "name": "erro-nao-admin",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 1150,
+          "y": 780
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "🚨 ATENÇÃO 🚨\n\nVocê não é administrador e não pode gerenciar o estoque da máquina."
+      }
+    },
+    {
+      "name": "codigoItem",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "verifica-codigoItem",
+          "event": "incomingMessage"
+        },
+        {
+          "next": "erro-timeout",
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 1680,
+          "y": 810
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "body": "Qual o código do item?",
+        "timeout": "30"
+      }
+    },
+    {
+      "name": "quantidadeItem",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "verifica-quantidadeItem",
+          "event": "incomingMessage"
+        },
+        {
+          "next": "erro-timeout",
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 1760,
+          "y": 1420
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "body": "*{{widgets.verifica-participante.parsed.vendingmachine.items[widgets.codigoItem.inbound.Body].nome}}*\n\nQual a quantidade total na coluna do item?\nInforme de 0 a {{widgets.verifica-participante.parsed.vendingmachine.items[widgets.codigoItem.inbound.Body].capacidade}} items:",
+        "timeout": "30"
+      }
+    },
+    {
+      "name": "verifica-codigoItem",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "erro-codigo-invalido",
+          "event": "noMatch"
+        },
+        {
+          "next": "quantidadeItem",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Valido",
+              "arguments": [
+                "{{widgets.codigoItem.inbound.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "{{widgets.verifica-participante.parsed.vendingmachine.codigos| join: \",\"}}"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.codigoItem.inbound.Body}}",
+        "offset": {
+          "x": 1610,
+          "y": 1110
+        }
+      }
+    },
+    {
+      "name": "espera",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 2070,
+          "y": 2180
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "{{widgets.atualiza-estoque.parsed.mensagem}}\n \nCódigo: {{widgets.codigoItem.inbound.Body}} \nProduto: {{widgets.verifica-participante.parsed.vendingmachine.items[widgets.codigoItem.inbound.Body].nome}}\n\nQuantidade: {{widgets.quantidadeItem.inbound.Body}} unidade(s)."
+      }
+    },
+    {
+      "name": "erro-codigo-invalido",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "codigoItem",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 1220,
+          "y": 1390
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Código informado é inválido.\n\nSe deseja sair deste menu, aguarde alguns segundos.\n\n{{widgets.verifica-participante.parsed.vendingmachine.codigos| join: \",\"}}"
+      }
+    },
+    {
+      "name": "verifica-quantidadeItem",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "erro-quantidade",
+          "event": "noMatch"
+        },
+        {
+          "next": "atualiza-estoque",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Valido",
+              "arguments": [
+                "{{widgets.quantidadeItem.inbound.Body}}"
+              ],
+              "type": "less_than",
+              "value": "{{widgets.verifica-participante.parsed.vendingmachine.items[widgets.codigoItem.inbound.Body].capacidade | plus : 1}}"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.quantidadeItem.inbound.Body}}",
+        "offset": {
+          "x": 1760,
+          "y": 1660
+        }
+      }
+    },
+    {
+      "name": "erro-quantidade",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "quantidadeItem",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 1320,
+          "y": 1690
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Quantidade máxima permitida é inválida!\n\nVocê pode informar até *{{widgets.verifica-participante.parsed.vendingmachine.items[widgets.codigoItem.inbound.Body].capacidade}}* items"
+      }
+    },
+    {
+      "name": "codigoItemResgate",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "verifica-codigoItemResgate",
+          "event": "incomingMessage"
+        },
+        {
+          "next": "resgate-timeout",
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 560,
+          "y": 1630
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "body": "Você possui *{{widgets.verifica-participante.parsed.participante.pontosCorrente}} ponto(s).*\n\nQual o código do item que deseja resgatar?",
+        "timeout": "30"
+      }
+    },
+    {
+      "name": "verifica-codigoItemResgate",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "erro-codigoResgate-invalido",
+          "event": "noMatch"
+        },
+        {
+          "next": "resgate",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Valido",
+              "arguments": [
+                "{{widgets.codigoItemResgate.inbound.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "{{widgets.verifica-participante.parsed.vendingmachine.codigos| join: \",\"}}"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.codigoItemResgate.inbound.Body}}",
+        "offset": {
+          "x": 490,
+          "y": 1870
+        }
+      }
+    },
+    {
+      "name": "erro-codigoResgate-invalido",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "codigoItemResgate",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 100,
+          "y": 2090
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Código informado é inválido.\n\nSe deseja sair deste menu, aguarde alguns segundos."
+      }
+    },
+    {
+      "name": "define-evento",
+      "type": "set-variables",
+      "transitions": [
+        {
+          "next": "verifica-participante",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "variables": [
+          {
+            "value": "hacktown",
+            "key": "evento"
+          }
+        ],
+        "offset": {
+          "x": 0,
+          "y": -290
+        }
+      }
+    },
+    {
+      "name": "atualiza-estoque",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "espera",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": 1930,
+          "y": 1900
+        },
+        "function_sid": "ZH0dcdc9a61cf4983ccf280378afcc59dd",
+        "parameters": [
+          {
+            "value": "{{widgets.codigoItem.inbound.Body}}",
+            "key": "codigoItem"
+          },
+          {
+            "value": "{{widgets.quantidadeItem.inbound.Body}}",
+            "key": "quantidadeItem"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/vendingmachine-estoque"
+      }
+    },
+    {
+      "name": "resgate",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "resultado-resgate",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": 490,
+          "y": 2240
+        },
+        "function_sid": "ZH6e71b3bba4a2ccc47cf6faf00451d0b4",
+        "parameters": [
+          {
+            "value": "{{widgets.codigoItemResgate.inbound.Body}}",
+            "key": "codigoItem"
+          },
+          {
+            "value": "{{trigger.message.From}}",
+            "key": "from"
+          },
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/vendingmachine-resgate"
+      }
+    },
+    {
+      "name": "verifica-pontuacao",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "Copy_of_envia-pontos",
+          "event": "noMatch"
+        },
+        {
+          "next": "codigoItemResgate",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Possui Pontos",
+              "arguments": [
+                "{{widgets.verifica-participante.parsed.participante.pontosCorrente}}"
+              ],
+              "type": "greater_than",
+              "value": "0"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.verifica-participante.parsed.participante.pontosCorrente}}",
+        "offset": {
+          "x": 110,
+          "y": 1140
+        }
+      }
+    },
+    {
+      "name": "Copy_of_envia-pontos",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -310,
+          "y": 1500
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Você não possui pontos para resgatar.\n\nJogue nosso jogo enviando a palavra-chave *COMEÇAR* e acumule pontos!\n\n\n{{widgets.verifica-participante.parsed.participante}}"
+      }
+    },
+    {
+      "name": "resgate-timeout",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 860,
+          "y": 1870
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "O tempo para informar o código do item desejado foi ultrapassado.\n\nA qualquer momento, envie novamente a palavra *RESGATE* para poder retirar o item desejado."
+      }
+    },
+    {
+      "name": "verifica-admin",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "limite-resgate",
+          "event": "noMatch"
+        },
+        {
+          "next": "codigoItemResgate",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "ADMIN",
+              "arguments": [
+                "{{widgets.verifica-participante.parsed.participante.isAdmin}}"
+              ],
+              "type": "matches_any_of",
+              "value": "true,True,1"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.verifica-participante.parsed.participante.isAdmin}}",
+        "offset": {
+          "x": 480,
+          "y": 630
+        }
+      }
+    },
+    {
+      "name": "jogar",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "retorno-jogo",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": -1020,
+          "y": 790
+        },
+        "function_sid": "ZHcf39b1d1d91ad821a97dbb2d2643b53d",
+        "parameters": [
+          {
+            "value": "{{trigger.message.Body}}",
+            "key": "palpite"
+          },
+          {
+            "value": "{{trigger.message.From}}",
+            "key": "from"
+          },
+          {
+            "value": "{{flow.variables.evento}}",
+            "key": "evento"
+          },
+          {
+            "value": "{{trigger.message.To}}",
+            "key": "to"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/game-palavra"
+      }
+    },
+    {
+      "name": "limite-resgate",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "verifica-pontuacao",
+          "event": "noMatch"
+        },
+        {
+          "next": "aviso-limite",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Acima Limite",
+              "arguments": [
+                "{{widgets.verifica-participante.parsed.participante.resgates}}"
+              ],
+              "type": "greater_than",
+              "value": "3"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.verifica-participante.parsed.participante.resgates}}",
+        "offset": {
+          "x": 170,
+          "y": 860
+        }
+      }
+    },
+    {
+      "name": "aviso-limite",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 730,
+          "y": 1130
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Você resgatou {{widgets.verifica-participante.parsed.participante.resgates}} de 3 items da vending machine!"
+      }
+    }
+  ],
+  "initial_state": "Trigger",
+  "flags": {
+    "allow_concurrent_calls": true
+  }
+}

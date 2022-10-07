@@ -1,0 +1,540 @@
+{
+  "description": "A New Flow",
+  "states": [
+    {
+      "name": "Trigger",
+      "type": "trigger",
+      "transitions": [
+        {
+          "event": "incomingMessage"
+        },
+        {
+          "event": "incomingCall"
+        },
+        {
+          "event": "incomingConversationMessage"
+        },
+        {
+          "event": "incomingRequest"
+        },
+        {
+          "next": "verifica-permissao",
+          "event": "incomingParent"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 120,
+          "y": -240
+        }
+      }
+    },
+    {
+      "name": "gerente-erro",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 250,
+          "y": 570
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "O seu perfil não tem acesso a essa função!"
+      }
+    },
+    {
+      "name": "verifica-permissao",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "gerente-erro",
+          "event": "noMatch"
+        },
+        {
+          "next": "palavra",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Gerente Sorteio",
+              "arguments": [
+                "{{trigger.parent.parameters.gerenciaSorteio}}"
+              ],
+              "type": "matches_any_of",
+              "value": "true,True,1"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{trigger.parent.parameters.gerenciaSorteio}}",
+        "offset": {
+          "x": 450,
+          "y": 320
+        }
+      }
+    },
+    {
+      "name": "erro-palavra",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 870,
+          "y": 870
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Palavra-chave não informada.\n\nVocê deve enviar *SORTEIO* para recomeçar."
+      }
+    },
+    {
+      "name": "palavra",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "verifica-sorteio-palavra",
+          "event": "incomingMessage"
+        },
+        {
+          "next": "erro-palavra",
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 670,
+          "y": 570
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "body": "Qual a palavra-chave do sorteio?",
+        "timeout": "30"
+      }
+    },
+    {
+      "name": "comando",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "valida-comando",
+          "event": "incomingMessage"
+        },
+        {
+          "next": "verifica-sorteio-palavra",
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 10,
+          "y": 1330
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "body": "{{widgets.verifica-sorteio-palavra.parsed.mensagem}}",
+        "timeout": "3600"
+      }
+    },
+    {
+      "name": "verifica-sorteio-palavra",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "palavra-valida",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": 430,
+          "y": 830
+        },
+        "function_sid": "ZHa9b5631174c0b6289fc7e032a9b0e476",
+        "parameters": [
+          {
+            "value": "{{trigger.parent.parameters.evento}}",
+            "key": "evento"
+          },
+          {
+            "value": "{{widgets.palavra.inbound.Body}}",
+            "key": "palavra"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/verifica-sorteio-palavra"
+      }
+    },
+    {
+      "name": "valida-comando",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "verifica-sorteio-palavra",
+          "event": "noMatch"
+        },
+        {
+          "next": "executa-comando",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Validos",
+              "arguments": [
+                "{{widgets.comando.inbound.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "fechar,abrir,sortear,lista"
+            }
+          ]
+        },
+        {
+          "next": "mensagem-sair",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Sair",
+              "arguments": [
+                "{{widgets.comando.inbound.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "sair,encerrar"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.comando.inbound.Body}}",
+        "offset": {
+          "x": 280,
+          "y": 1590
+        }
+      }
+    },
+    {
+      "name": "retorno-comando",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "verifica-sorteio-palavra",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -210,
+          "y": 2670
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "{{widgets.executa-comando.parsed.mensagem}}"
+      }
+    },
+    {
+      "name": "mensagem-sair",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 480,
+          "y": 1870
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Quando quiser retornar, basta enviar *SORTEIO*."
+      }
+    },
+    {
+      "name": "executa-comando",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "verifica-retorno-comando",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": 270,
+          "y": 2160
+        },
+        "function_sid": "ZH4a18d931e9741ad840d8d0524a525483",
+        "parameters": [
+          {
+            "value": "{{trigger.parent.parameters.evento}}",
+            "key": "evento"
+          },
+          {
+            "value": "{{widgets.palavra.inbound.Body}}",
+            "key": "palavra"
+          },
+          {
+            "value": "{{widgets.comando.inbound.Body | downcase}}",
+            "key": "comando"
+          },
+          {
+            "value": "{{trigger.message.To}}",
+            "key": "to"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/executa-comando-sorteio"
+      }
+    },
+    {
+      "name": "palavra-valida",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "erro-palavra-invalida",
+          "event": "noMatch"
+        },
+        {
+          "next": "comando",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Valida",
+              "arguments": [
+                "{{widgets.verifica-sorteio-palavra.parsed.valida}}"
+              ],
+              "type": "matches_any_of",
+              "value": "true,True,1"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.verifica-sorteio-palavra.parsed.valida}}",
+        "offset": {
+          "x": 580,
+          "y": 1100
+        }
+      }
+    },
+    {
+      "name": "erro-palavra-invalida",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 700,
+          "y": 1360
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "{{widgets.verifica-sorteio-palavra.parsed.mensagem}}"
+      }
+    },
+    {
+      "name": "verifica-retorno-comando",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "retorno-comando",
+          "event": "noMatch"
+        },
+        {
+          "next": "retorno-ligacao",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "Possui Retorno Ligação",
+              "arguments": [
+                "{{widgets.executa-comando.parsed.retornoSorteio}}"
+              ],
+              "type": "matches_any_of",
+              "value": "true,True,1"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.executa-comando.parsed.retornoSorteio}}",
+        "offset": {
+          "x": 340,
+          "y": 2410
+        }
+      }
+    },
+    {
+      "name": "retorno-ligacao",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "verifica-retorno-ligacao",
+          "event": "incomingMessage"
+        },
+        {
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 450,
+          "y": 2700
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "body": "{{widgets.executa-comando.parsed.mensagem}}",
+        "timeout": "30"
+      }
+    },
+    {
+      "name": "verifica-retorno-ligacao",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "verifica-sorteio-palavra",
+          "event": "noMatch"
+        },
+        {
+          "next": "conecta-ligacao",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "SIM",
+              "arguments": [
+                "{{widgets.retorno-ligacao.inbound.Body}}"
+              ],
+              "type": "matches_any_of",
+              "value": "s,sim,y,si,sí,yes"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.retorno-ligacao.inbound.Body}}",
+        "offset": {
+          "x": -210,
+          "y": 2960
+        }
+      }
+    },
+    {
+      "name": "conecta-ligacao",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "retorno-conecta-ligacao",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+        "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+        "offset": {
+          "x": 280,
+          "y": 3210
+        },
+        "function_sid": "ZHf936c7fbf13ec9bbf246090fa7db0952",
+        "parameters": [
+          {
+            "value": "{{trigger.message.To}}",
+            "key": "from"
+          },
+          {
+            "value": "{{widgets.executa-comando.parsed.telefone}}",
+            "key": "numero1"
+          },
+          {
+            "value": "{{trigger.message.From}}",
+            "key": "numero2"
+          }
+        ],
+        "url": "https://eventos-2246-dev.twil.io/ligacao"
+      }
+    },
+    {
+      "name": "retorno-conecta-ligacao",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "verifica-sorteio-palavra",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -150,
+          "y": 3430
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "{{widgets.conecta-ligacao.parsed.mensagem}}"
+      }
+    }
+  ],
+  "initial_state": "Trigger",
+  "flags": {
+    "allow_concurrent_calls": true
+  }
+}
