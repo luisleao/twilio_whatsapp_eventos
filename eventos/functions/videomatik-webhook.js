@@ -37,7 +37,7 @@ exports.handler = async function(context, event, callback) {
     console.log('resultado participante', participante);
 
     switch(state) {
-        case 'render':
+        case 'rendering':
             await client.messages.create({
                 from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER_TDC}`,
                 to: `whatsapp:${participante.phoneNumber}`,
