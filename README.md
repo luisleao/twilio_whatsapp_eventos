@@ -1,4 +1,4 @@
-# Ativações da Twilio em Eventos
+# Ativações da Twilio com WhatsApp em Eventos
 
 ![Marcas da Twilio e WhatsApp](./eventos/assets/images/powered.png)
 
