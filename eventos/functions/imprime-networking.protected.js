@@ -15,10 +15,13 @@ const md5 = require('md5');
 */
 exports.handler = async function(context, event, callback) {
     let participanteId = await md5(limpaNumero(event.from));
+    let idPlayerEvent = await md5(`${event.evento}:${limpaNumero(event.from)}`);
 
     let id = await firestore.collection('labels')
         .add({
-            url: `https://wa.me/${limpaNumero(event.to, true)}?text=${participanteId}`,
+            url: `https://wa.me/${limpaNumero(event.to, true)}?text=${idPlayerEvent}`,
+            participanteId,
+            idPlayerEvent,
             evento: event.evento,
             printer: event.token.toUpperCase(),
             telefone: escondeNumero(limpaNumero(event.from)),

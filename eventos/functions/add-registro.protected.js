@@ -18,6 +18,7 @@ exports.handler = async function(context, event, callback) {
     console.log('ADD REGISTRO: ', event);
 
     let participanteId = await md5(limpaNumero(event.from));
+    let idPlayerEvent = await md5(`${event.evento}:${limpaNumero(event.from)}`);
 
     let participante = {
         phoneNumber: limpaNumero(event.from),
@@ -82,14 +83,16 @@ exports.handler = async function(context, event, callback) {
 
     // Salvar o registro do participante
     await firestore.collection('events').doc(event.evento).collection('participantes')
-        .doc(participanteId).set({
+        .doc(idPlayerEvent).set({
             ...participante,
+            participanteId,
             createdAt: admin.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
 
     await firestore.collection('participantes')
         .doc(participanteId).set({
             ...participante,
+            idPlayerEvent,
             ultimoEvento: event.evento,
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         }, { merge: true });

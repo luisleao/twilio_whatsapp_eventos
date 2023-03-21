@@ -15,6 +15,7 @@ const md5 = require('md5');
 */
 exports.handler = async function(context, event, callback) {
     let participanteId = await md5(limpaNumero(event.from));
+    let idPlayerEvent = await md5(`${event.evento}:${limpaNumero(event.from)}`);
 
     let mensagem = [];
 
@@ -22,7 +23,9 @@ exports.handler = async function(context, event, callback) {
 
     await firestore.collection('events')
         .doc(event.evento).collection('participantes')
-        .doc(participanteId).set({
+        .doc(idPlayerEvent).set({
+            participanteId,
+            idPlayerEvent,
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             phoneNumber: limpaNumero(event.from),
             nome: event.nome

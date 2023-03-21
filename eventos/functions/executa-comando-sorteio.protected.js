@@ -64,18 +64,19 @@ exports.handler = async function(context, event, callback) {
                 await firestore.collection('events')
                     .doc(event.evento).collection('sorteios')
                     .doc(event.palavra).collection('participantes')
-                    .doc(sorteado.participanteId)
+                    .doc(sorteado.idPlayerEvent)
                     .set({
                         sorteado: true,
                         sorteadoAt: admin.firestore.FieldValue.serverTimestamp(),                        
                     }, { merge: true });
 
                 // Carregar participante para obter número do WhatsApp
+                let idPlayerEvent = sorteado.idPlayerEvent;
                 let participanteId = sorteado.participanteId;
 
                 let participante = await firestore.collection('events')
                     .doc(event.evento).collection('participantes')
-                    .doc(participanteId).get().then(async s => {
+                    .doc(idPlayerEvent).get().then(async s => {
                         if (s.exists) {
                             return s.data();
                         } else {
@@ -87,13 +88,13 @@ exports.handler = async function(context, event, callback) {
 
                     await firestore.collection('events')
                         .doc(event.evento).collection('participantes')
-                        .doc(participanteId).set({ 
+                        .doc(idPlayerEvent).set({ 
                             sorteios: admin.firestore.FieldValue.increment(1),
                             updatedAt: admin.firestore.FieldValue.serverTimestamp()
                         }, { merge: true});
 
                     await firestore.collection('participantes')
-                        .doc(participanteId).set({ 
+                        .doc(participante.participanteId).set({ 
                             sorteios: admin.firestore.FieldValue.increment(1),
                             updatedAt: admin.firestore.FieldValue.serverTimestamp()
                         }, { merge: true});
@@ -111,13 +112,15 @@ exports.handler = async function(context, event, callback) {
                         `whatsapp:${participante.phoneNumber}`,
                         mensagemSorteio.join('\n\n')
                     );
-
-                    mensagem.push(`🎉 ${sorteado.telefone.split('*').join('∗')}: ${sorteado.nome} 🎉`);
-                    mensagem.push([
-                        `Você deseja que esta pessoa receba uma ligação?`,
-                        `Responda com *SIM* ou *NÃO*.`
-                    ].join('\n'));
                     
+                    // mensagem.push(`🎉 ${sorteado.telefone.split('*').join('∗')}: ${sorteado.nome} 🎉`);
+                    mensagem.push(`🎉 ${sorteado.telefone.split('*').join('∗')} 🎉\n\n(${participante.phoneNumber}): ${sorteado.nome}\n\nCidade: ${participante.cidade}`);
+                    // mensagem.push([
+                    //     `Você deseja que esta pessoa receba uma ligação?`,
+                    //     `Responda com *SIM* ou *NÃO*.`
+                    // ].join('\n'));
+                    
+                    data.idPlayerEvent = idPlayerEvent;
                     data.participanteId = participanteId;
                     data.telefone = participante.phoneNumber;
                     data.retornoSorteio = true;

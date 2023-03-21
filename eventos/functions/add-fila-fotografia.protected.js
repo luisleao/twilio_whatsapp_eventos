@@ -15,6 +15,7 @@ const md5 = require('md5');
 */
 exports.handler = async function(context, event, callback) {
     let participanteId = await md5(limpaNumero(event.from));
+    let idPlayerEvent = await md5(`${event.evento}:${limpaNumero(event.from)}`);
 
     let agendamentoTotal = null;
     let agendamentoPosicao = null;
@@ -43,7 +44,9 @@ exports.handler = async function(context, event, callback) {
 
     let agendamento = await firestore.collection('events')
         .doc(event.evento).collection('agendamento')
-        .doc(participanteId).set({
+        .doc(idPlayerEvent).set({
+            idPlayerEvent,
+            participanteId,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             posicao: posicao,
             status: 'fila',

@@ -16,14 +16,6 @@ const md5 = require('md5');
 exports.handler = async function(context, event, callback) {
     let participanteId = event.token;
 
-    let participanteGeral = await firestore.collection('participantes')
-        .doc(participanteId).get().then(async s => {
-            if (s.exists) {
-                return s.data();
-            } else {
-                return {}
-            }
-    });
 
     let participante = await firestore.collection('events')
         .doc(event.evento).collection('participantes')
@@ -36,17 +28,28 @@ exports.handler = async function(context, event, callback) {
                 pontosCorrente: 0,
                 recebeuOptin: false,
                 ativouNetworking: false,
-                impressoesNetworking: 0
+                impressoes: 0
             };
         }
     });
+
+    let participanteGeral = await firestore.collection('participantes')
+        .doc(participante.participanteId).get().then(async s => {
+        if (s.exists) {
+            return s.data();
+        } else {
+            return {}
+        }
+    });
+
 
 
     let data = {
         podeDescontarPontos: participante.pontosCorrente > 0,
         pontosCorrente: participante.pontosCorrente,
         pontosAcumulados: participante.pontosAcumulados,
-        participante
+        participante,
+        participanteGeral
     };
 
     callback(null, data);

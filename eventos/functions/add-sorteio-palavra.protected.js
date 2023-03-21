@@ -16,6 +16,7 @@ const md5 = require('md5');
 exports.handler = async function(context, event, callback) {
 
     let participanteId = await md5(limpaNumero(event.from));
+    let idPlayerEvent = await md5(`${event.evento}:${limpaNumero(event.from)}`);
 
     event.palavra = event.palavra.toLowerCase();
 
@@ -38,15 +39,15 @@ exports.handler = async function(context, event, callback) {
             const inscrito = await firestore.collection('events')
                     .doc(event.evento).collection('sorteios')
                     .doc(event.palavra).collection('participantes')
-                    .doc(participanteId)
+                    .doc(idPlayerEvent)
                     .get().then(p => p.exists);
 
             if (!inscrito) {
-                // TODO: inscrever
+                // Inscrever
 
                 let participante = await firestore.collection('events')
                     .doc(event.evento).collection('participantes')
-                    .doc(participanteId).get().then(async s => {
+                    .doc(idPlayerEvent).get().then(async s => {
                         if (s.exists) {
                             return s.data();
                         } 
@@ -58,11 +59,13 @@ exports.handler = async function(context, event, callback) {
                 await firestore.collection('events')
                     .doc(event.evento).collection('sorteios')
                     .doc(event.palavra).collection('participantes')
-                    .doc(participanteId)
+                    .doc(idPlayerEvent)
                     .set({
                         participanteId,
+                        idPlayerEvent,
                         telefone: escondeNumero(limpaNumero(event.from)),
                         nome: participante.nome || '',
+                        profileName: participante.profileName,
                         sorteado: false,
                         seed: Math.random(),
                         createdAt: admin.firestore.FieldValue.serverTimestamp(),                        
@@ -74,10 +77,11 @@ exports.handler = async function(context, event, callback) {
                         inscricoes: admin.firestore.FieldValue.increment(1)
                     }, { merge: true});
 
-                mensagem.push(`🥳 🎉 Inscrição realizada com sucesso para este sorteio! 🎉`);
+                const nomeSorteio = sorteio.nome || '';
+                mensagem.push(`🥳 🎉 Inscrição realizada com sucesso para o sorteio *${nomeSorteio.split('<e>').join('\n')}*! 🎉`);
 
             } else {
-                // TODO: não deixar inscrever
+                // Não deixar inscrever
                 mensagem.push(`Você já fez sua inscrição para este sorteio!`);
             }
 
