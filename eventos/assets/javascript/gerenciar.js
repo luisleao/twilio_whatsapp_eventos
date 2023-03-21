@@ -1,5 +1,5 @@
 import * as firebase from "https://www.gstatic.com/firebasejs/9.18.0/firebase-app.js";
-import { getFirestore, onSnapshot, collection, query, where, orderBy, doc as docFunc, setDoc } from "https://www.gstatic.com/firebasejs/9.18.0/firebase-firestore.js";
+import { getFirestore, onSnapshot, collection, query, where, orderBy, doc as docFunc, setDoc, FieldValue } from "https://www.gstatic.com/firebasejs/9.18.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyC6I8Rwo9YiJgd7zK-U5RpHBZDSPsDt0ME",
@@ -30,7 +30,7 @@ window.trigger = function() {
             const palestra = doc.data();
             const li = document.createElement("li");
             // Add button to update database
-            li.innerHTML = `${palestra.titulo} | <button id="abrir-palestra-${doc.id}" data-id="${doc.id}">Abrir</button> | <button id="fechar-doc-${doc.id}" data-id="${doc.id}">Fechar</button>`;
+            li.innerHTML = `${palestra.feedbacks ? '[' + palestra.feedbacks + ']' : ''} ${palestra.titulo} | <button id="abrir-palestra-${doc.id}" data-id="${doc.id}">Abrir</button> | <button id="fechar-doc-${doc.id}" data-id="${doc.id}">Fechar</button>`;
             li.setAttribute("data-id", doc.id);
             trails.appendChild(li);
                 
@@ -38,7 +38,8 @@ window.trigger = function() {
             abrirPalestra.addEventListener("click", (e) => {
                 const palestraRef = docFunc(db, "events", "tdcconnections2023", "palestras", doc.id);
                 setDoc(palestraRef, {
-                    status: "Aberto"
+                    status: "Aberto",
+                    // updatedAt: FieldValue.serverTimestamp()
                 }, {
                     merge: true
                 });
@@ -47,7 +48,8 @@ window.trigger = function() {
             fecharPalestra.addEventListener("click", (e) => {
                 const palestraRef = docFunc(db, "events", "tdcconnections2023", "palestras", doc.id);
                 setDoc(palestraRef, {
-                    status: "Fechado"
+                    status: "Fechado",
+                    // updatedAt: FieldValue.serverTimestamp()
                 }, {
                     merge: true
                 });
