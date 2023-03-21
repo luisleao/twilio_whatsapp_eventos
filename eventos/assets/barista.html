@@ -1,14 +1,15 @@
 <html>
 
     <head>
-        <title>Coodenador</title>
+        <title>Barista</title>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Sans+Condensed">
         <link rel="stylesheet" href="css/tela.css">  
+        <link rel="stylesheet" href="css/barista.css">  
         <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-app.js"></script>
         <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-auth.js"></script>
         <script src="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.js"></script>
         <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.css" />
-        <script type="module" src="javascript/coordenador.js"></script>
+        <script type="module" src="javascript/barista.js"></script>
     </head>
 
     <body>
@@ -23,7 +24,15 @@
             </form>
         </div>
         <main class="hidden" id="main-container">
-            <ul id="trails">
+            <div id="flexbox">
+                <h3 style="margin-right: 10px;">Belo Horizonte</h3>
+                <label class="switch">
+                    <input type="checkbox" id="city">
+                    <span class="slider"></span>
+                </label>
+                <h3 style="margin-left: 10px;">Recife</h3>
+            </div>
+            <ul id="to-do">
 
             </ul>
         </main>
