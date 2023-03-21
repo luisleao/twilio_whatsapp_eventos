@@ -24,7 +24,8 @@ const db = getFirestore(app);
 const todo = document.getElementById("to-do");
 const q = query(
     collection(db, "events", "tdcconnections2023", "barista"),
-    where("status", "in", ["pendente", "preparo"])
+    where("status", "in", ["pendente", "preparo"]),
+    orderBy("createdAt", "asc")
 );
 
 function toDateTime(secs) {
@@ -50,30 +51,40 @@ const sendPost = (payload) => {
 const cityCheckbox = document.getElementById("city");
 
 const check = () => {
-    if (cityCheckbox.checked) {
-        todo.querySelectorAll("li").forEach((li) => {
-            if (li.getAttribute("data-city") !== "Recife") {
-                li.style.display = "none";
-            }
-            if (li.getAttribute("data-city") === "Recife") {
-                li.style.display = "block";
-            }
-        });
-    } else {
-        todo.querySelectorAll("li").forEach((li) => {
-            if (li.getAttribute("data-city") !== "Belo Horizonte") {
-                li.style.display = "none";
-            }
-            if (li.getAttribute("data-city") === "Belo Horizonte") {
-                li.style.display = "block";
-            }
-        });
-    }
+    document.body.removeAttribute('class');
+    document.body.classList.add(cityCheckbox.checked ? 'recife' : 'bh');
+    // if (cityCheckbox.checked) {
+    //     todo.querySelectorAll("li").forEach((li) => {
+    //         if (li.getAttribute("data-city") !== "Recife") {
+    //             li.style.display = "none";
+    //         }
+    //         if (li.getAttribute("data-city") === "Recife") {
+    //             li.style.display = "block";
+    //         }
+    //     });
+    // } else {
+    //     todo.querySelectorAll("li").forEach((li) => {
+    //         if (li.getAttribute("data-city") !== "Belo Horizonte") {
+    //             li.style.display = "none";
+    //         }
+    //         if (li.getAttribute("data-city") === "Belo Horizonte") {
+    //             li.style.display = "block";
+    //         }
+    //     });
+    // }
 }
 
 cityCheckbox.addEventListener("change", (e) => {
     check();
 });
+
+const NomeCafe = (tipo) => {
+    switch(tipo) {
+        case 'COFFEE_RAFAELOLIVEIRA': return 'Rafael Oliveira';
+        case 'COFFEE_JOSEALDO': return 'José Aldo';
+        case 'COFFEE_JOAOWALTERAMARAL': return 'João Walter Amaral';
+    }
+}
 
 window.load = function () {
     onSnapshot(q, (querySnapshot) => {
@@ -82,12 +93,16 @@ window.load = function () {
             const cafe = doc.data();
             const li = document.createElement("li");
 
-            li.innerHTML = `${cafe.cafe}, criado em: ${toDateTime(
-                cafe.createdAt.seconds
-            ).toLocaleDateString()}. | <button id="chamar-${doc.id}" data-id="${doc.id
-                }">Chamar</button> | <button id="preparar-${doc.id}" data-id="${doc.id
-                }">Preparar</button> | <button id="cancelar-${doc.id}" data-id="${doc.id
-                }">Cancelar</button>`;
+            li.classList.add(cafe.cidade == 'Recife' ? cafe.cidade.toLowerCase() : 'bh');
+            li.classList.add(cafe.status);
+
+            li.innerHTML = `<span class="telefone">${cafe.telefone}</span>: <span class="cafe">${NomeCafe(cafe.cafe)}</span>  
+                <button id="pronto-${doc.id}" class="pronto" data-id="${doc.id}">✅ Pronto!</button>
+                <button id="preparar-${doc.id}" class="preparar" data-id="${doc.id}">☕️ Preparar</button>
+                <button id="cancelar-${doc.id}" class="cancelar" data-id="${doc.id}">😡 Cancelar</button>
+                <button id="chamar-${doc.id}" class="chamar" data-id="${doc.id}">📞 Chamar ${cafe.chamados ? '[' + cafe.chamados + ']' : ''}</button> 
+            `;
+
             li.setAttribute("data-id", doc.id);
             li.setAttribute("data-city", cafe.cidade);
 
@@ -102,6 +117,7 @@ window.load = function () {
                     idPlayerEvent: cafe.idPlayerEvent,
                 })
             });
+
             const prepararButton = document.getElementById(`preparar-${doc.id}`);
             prepararButton.addEventListener("click", () => {
                 console.log("preparar");
@@ -112,16 +128,31 @@ window.load = function () {
                     idPlayerEvent: cafe.idPlayerEvent,
                 })
             });
+
             const cancelarButton = document.getElementById(`cancelar-${doc.id}`);
             cancelarButton.addEventListener("click", () => {
                 console.log("cancelar");
+                if (confirm('Deseja cancelar este pedido?')) {
+                    sendPost({
+                        filaId: doc.id,
+                        status: "cancelado",
+                        evento: cafe.evento,
+                        idPlayerEvent: cafe.idPlayerEvent,
+                    })
+                }
+            });
+
+            const prontoButton = document.getElementById(`pronto-${doc.id}`);
+            prontoButton.addEventListener("click", () => {
+                console.log("pronto");
                 sendPost({
                     filaId: doc.id,
-                    status: "cancelado",
+                    status: "pronto",
                     evento: cafe.evento,
                     idPlayerEvent: cafe.idPlayerEvent,
                 })
             });
+
             check();
         });
     });

@@ -63,3 +63,49 @@
     flex-direction: row;
     align-items: center;
 }
+
+body.recife .bh, body.bh .recife {
+  display: none;
+}
+
+
+ul {
+  margin: 0;
+  padding: 0;
+}
+
+li {
+  font-size: 1.5em;
+  display: block;
+  /* overflow: visible; */
+  list-style-type: none;
+  padding: .5em;
+  margin-bottom: .1em;
+  box-sizing: content-box;
+}
+li span {
+  display: inline-block;
+}
+
+button {
+  font-size: .8em;
+  float: right;
+  margin: 0 0 0 0.5em;
+  display: block;
+}
+
+li.pendente .pronto,
+li.preparo .chamar,
+li.preparo .preparar,
+li.preparo .cancelar
+{
+  display: none;
+}
+
+li.pendente {
+  background-color: #f37466;
+}
+li.preparo {
+  background-color: #fcf47c;
+}
+
