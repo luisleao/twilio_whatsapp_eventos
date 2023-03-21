@@ -22,7 +22,6 @@ const trilhaId = params.id;
 const trails = document.getElementById("trail-talks");
 const q = query(collection(db, "events", "tdcconnections2023", "palestras"), where("trilhaId", "==", trilhaId), orderBy("titulo", "asc"));
 
-
 window.trigger = function() {
     onSnapshot(q, (querySnapshot) => {
         trails.innerHTML = "";

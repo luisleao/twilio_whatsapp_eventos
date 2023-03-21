@@ -15,12 +15,14 @@ const db = getFirestore(app);
 
 const trails = document.getElementById("trails");
 const q = query(collection(db, "events", "tdcconnections2023", "trilhas"), orderBy("trilhaNome", "asc"));
-onSnapshot(q, (querySnapshot) => {
-    querySnapshot.forEach((doc) => {
-        const trilha = doc.data();
-        const li = document.createElement("li");
-        li.innerHTML = `${trilha.trilhaNome} | <a href="./gerenciar.html?id=${doc.id}">Gerenciar</a> | <a href="./tela.html?id=${doc.id}">TV</a>`;
-        li.setAttribute("data-id", doc.id);
-        trails.appendChild(li);
-    });
-})
+window.load = function() {
+    onSnapshot(q, (querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+            const trilha = doc.data();
+            const li = document.createElement("li");
+            li.innerHTML = `${trilha.trilhaNome} | <a href="./gerenciar.html?id=${doc.id}">Gerenciar</a> | <a href="./tela.html?id=${doc.id}">TV</a>`;
+            li.setAttribute("data-id", doc.id);
+            trails.appendChild(li);
+        });
+    })
+}
