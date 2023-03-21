@@ -1,0 +1,110 @@
+body {
+    font-family: "Fira Sans Condensed", sans-serif;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    margin: 40px;
+}
+#container {
+    display: flex;
+    flex-direction: row;
+}
+
+#image-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 40%;
+    height: 100%;
+}
+
+#image-content-qr {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 40%;
+    height: 100%;
+}
+
+#image-content-qr img {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+#image-content img {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+#text-content {
+    display: flex;
+    flex-direction: column;
+    width: 60%;
+    height: 100%;
+}
+
+#code-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+#code-container span {
+    font-weight: bold;
+}
+
+#brand-container {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 50px;
+}
+
+h1 {
+    font-size: 4.5rem;
+    display: inline;
+}
+
+h2 {
+    font-size: 4rem;
+    font-weight: lighter;
+}
+
+h2 span {
+    display: block;
+    font-weight: bold;
+}
+
+p {
+    font-size: 3rem;
+    text-align: center;
+    margin: 0;;
+}
+
+.responsive {
+    width: 100%;
+    height: auto;
+}
+
+.hidden {
+    display: none !important;
+}
+
+#empty {
+    margin-top: 300px;
+    display: flex;
+    flex-direction: row;
+}
+
+#login-form {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
