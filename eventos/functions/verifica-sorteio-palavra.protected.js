@@ -16,6 +16,15 @@ exports.handler = async function(context, event, callback) {
 
     // TODO: verificar se palavra-chave existe
     // TODO: retornar status e totais
+
+    if (!event.palavra || event.palavra.length == 0) {
+        let data = {
+            valida: false,
+            mensagem: ''
+        };
+    
+        callback(null, data);
+    }
     event.palavra = event.palavra.toLowerCase();
 
     // let participanteId = await md5(limpaNumero(event.from));
