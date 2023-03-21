@@ -20,7 +20,7 @@ const md5 = require('md5');
 
 const VIDEOMATIK_ESTADOS_TRAVAR = [
   'new',
-  'render'
+  'rendering'
 ]
 
 // parâmetros: imagem, from
