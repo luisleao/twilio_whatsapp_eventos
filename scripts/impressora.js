@@ -42,7 +42,7 @@ const updatePrintersFromFirestore = query => {
         const printerData = await doc.data();
         // console.log('PRINTER CHANGED', printerData.Name);
         Object.assign(printers[printerId], {...printerData});
-        console.log(printerData)
+
         // carregar dados do evento (label, inclusive)
         if (printerData.evento) {
             const evento = await firestore.collection('events').doc(printerData.evento).get();
@@ -62,13 +62,9 @@ const updatePrintersFromFirestore = query => {
 const updateEventosFromFirestore = query => {
     console.log('carregando eventos...');
     query.forEach(async doc => {
-        try {
-            const eventData = await doc.data();
-            console.log(doc.id);
-            eventos[doc.id] = { ...eventData };
-        } catch (err) {
-            console.log(err)
-        }
+        const eventData = await doc.data();
+        console.log(doc.id);
+        eventos[doc.id] = { ...eventData };
     });
 }
 
@@ -114,7 +110,7 @@ const init = async () => {
 
     // Filtrar no firestore etiquetas vinculadas as impressoras 
     firestore.collection('labels')
-        .where('printer', 'in', ['IMPRIMIR'])
+        .where('printer', 'in', printersNames)
         .onSnapshot(async query => {
             if (query.size > 0) {
                 console.log(query.size, 'REGISTROS ENCONTRADOS!');
@@ -123,31 +119,30 @@ const init = async () => {
                     const labelId = doc.id;
                     const labelData = doc.data();
                     const evento = labelData.evento;
-                    const eventoData = evento;
+                    const eventoData = eventos[labelData.evento] || {};
                     
                     // const evento = null; // printers[labelData.printer].evento || null
                     // const eventoData = {}; // eventos[evento] || {}
-                    // console.log(evento)
-                    console.log(eventoData)
-                    // console.log(eventoData);
-                    if ("Python Brasil") {
+
+                    console.log(labelData, evento, eventoData);
+                    if (eventoData.label) {
 
                         // TODO: carregar label do evento ou default
                         const label = Object.keys(labelData).reduce((prev, key)=> {
                             console.log(key, labelData[key]);
                             return prev.split(`{{${key}}}`).join(labelData[key]);
-                        }, `${"Python Brasil"}`);
+                        }, `${eventoData.label}`);
 
                         // Imprimir label
-                        dymo.print(printersNames[0], label).then(async p => {
+                        dymo.print(labelData.printer, label).then(async p => {
                             console.log('Imprimindo >', labelData);
                             // const { participanteId, nome, pronome, linkedin, impressoes, evento } = doc.data();
 
-                            // if (evento) {
+                            if (evento) {
                                 // Salvar informacao de impressao no evento
                                 if (labelData.participanteId) {
                                     await firestore.collection('events')
-                                        .doc("pythonbr")
+                                        .doc(evento)
                                         .collection('participantes')
                                         .doc(labelData.participanteId)
                                         .set({
@@ -159,9 +154,9 @@ const init = async () => {
                                     console.log('Com evento, porém sem ID de participante!');
                                 }
 
-                            // } else {
-                            //     console.log('SEM EVENTO');
-                            // }
+                            } else {
+                                console.log('SEM EVENTO');
+                            }
 
                         }).catch(e => { console.log("ERRO ", e)});
 
