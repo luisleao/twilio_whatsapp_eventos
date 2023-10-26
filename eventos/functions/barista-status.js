@@ -66,14 +66,16 @@ exports.handler = async function(context, event, callback) {
         switch (event.status) {
             case 'chamar':
 
+                // (client, from, to, message, messagingServiceSid)
                 await sendNotification(
-                    client,
-                    `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER_DEFAULT}`,
+                    client, null,
                     `whatsapp:${participante.phoneNumber}`,
                     replaceVariablesTemplateMessage(evento.barista.messages.call,
                         {
                             'code': codigo
-                    })
+                    },
+                    evento.barista.messageServiceSID
+                    )
     
                 );
 
@@ -99,9 +101,10 @@ exports.handler = async function(context, event, callback) {
 
                 await sendNotification(
                     client,
-                    `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER_DEFAULT}`,
+                    null,
                     `whatsapp:${participante.phoneNumber}`,
-                    evento.barista.messages.cancelled
+                    evento.barista.messages.cancelled,
+                    evento.barista.messageServiceSID
                 );
 
                 await firestore.collection('events').doc(event.evento)
@@ -144,9 +147,10 @@ exports.handler = async function(context, event, callback) {
 
                 await sendNotification(
                     client,
-                    `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER_DEFAULT}`,
+                    null,
                     `whatsapp:${participante.phoneNumber}`,
-                    mensagem.join('\n\n')
+                    mensagem.join('\n\n'),
+                    evento.barista.messageServiceSID
                 );
 
                 // Atualizar stats de café
