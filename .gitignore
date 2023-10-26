@@ -136,4 +136,5 @@ firebase-credentials.json
 eventos/assets/firebase-credentials.private.json
 
 scripts/csv/*.*
+scripts/csv/*
 .DS_Store
