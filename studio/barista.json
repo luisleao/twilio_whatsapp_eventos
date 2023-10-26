@@ -1,0 +1,420 @@
+{
+    "description": "A New Flow",
+    "states": [
+      {
+        "name": "Trigger",
+        "type": "trigger",
+        "transitions": [
+          {
+            "next": "variables-messaging",
+            "event": "incomingMessage"
+          },
+          {
+            "event": "incomingCall"
+          },
+          {
+            "event": "incomingConversationMessage"
+          },
+          {
+            "event": "incomingRequest"
+          },
+          {
+            "next": "variables-subflow",
+            "event": "incomingParent"
+          }
+        ],
+        "properties": {
+          "offset": {
+            "x": -240,
+            "y": -360
+          }
+        }
+      },
+      {
+        "name": "verify-command",
+        "type": "split-based-on",
+        "transitions": [
+          {
+            "next": "menu",
+            "event": "noMatch"
+          },
+          {
+            "next": "set-coffee-direct",
+            "event": "match",
+            "conditions": [
+              {
+                "friendly_name": "Request Coffee",
+                "arguments": [
+                  "{{flow.variables.token}}"
+                ],
+                "type": "starts_with",
+                "value": "COFFEE_"
+              }
+            ]
+          },
+          {
+            "next": "menu",
+            "event": "match",
+            "conditions": [
+              {
+                "friendly_name": "Ask for Options",
+                "arguments": [
+                  "{{flow.variables.token}}"
+                ],
+                "type": "matches_any_of",
+                "value": "café,coffee,☕️,cafe,barista"
+              }
+            ]
+          }
+        ],
+        "properties": {
+          "input": "{{flow.variables.token}}",
+          "offset": {
+            "x": 610,
+            "y": 580
+          }
+        }
+      },
+      {
+        "name": "attendee",
+        "type": "run-function",
+        "transitions": [
+          {
+            "next": "verify-barista-enable",
+            "event": "success"
+          },
+          {
+            "event": "fail"
+          }
+        ],
+        "properties": {
+          "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+          "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+          "offset": {
+            "x": -240,
+            "y": 280
+          },
+          "function_sid": "ZHe93d90182c78a208e9017b9e16633114",
+          "parameters": [
+            {
+              "value": "{{flow.variables.evento}}",
+              "key": "evento"
+            },
+            {
+              "value": "{{flow.variables.from}}",
+              "key": "from"
+            }
+          ],
+          "url": "https://eventos-2246-dev.twil.io/verifica-participante"
+        }
+      },
+      {
+        "name": "verify-barista-enable",
+        "type": "split-based-on",
+        "transitions": [
+          {
+            "event": "noMatch"
+          },
+          {
+            "next": "verify-barista-active",
+            "event": "match",
+            "conditions": [
+              {
+                "friendly_name": "ENABLED",
+                "arguments": [
+                  "{{widgets.attendee.parsed.evento.barista.enabled}}"
+                ],
+                "type": "matches_any_of",
+                "value": "1,true,True"
+              }
+            ]
+          }
+        ],
+        "properties": {
+          "input": "{{widgets.attendee.parsed.evento.barista.enabled}}",
+          "offset": {
+            "x": 90,
+            "y": 280
+          }
+        }
+      },
+      {
+        "name": "verify-barista-active",
+        "type": "split-based-on",
+        "transitions": [
+          {
+            "next": "barista-inactive",
+            "event": "noMatch"
+          },
+          {
+            "next": "verify-command",
+            "event": "match",
+            "conditions": [
+              {
+                "friendly_name": "ACTIVE",
+                "arguments": [
+                  "{{widgets.attendee.parsed.evento.barista.pouring}}"
+                ],
+                "type": "matches_any_of",
+                "value": "1,true,True"
+              }
+            ]
+          }
+        ],
+        "properties": {
+          "input": "{{widgets.attendee.parsed.evento.barista.pouring}}",
+          "offset": {
+            "x": 430,
+            "y": 280
+          }
+        }
+      },
+      {
+        "name": "barista-inactive",
+        "type": "send-message",
+        "transitions": [
+          {
+            "event": "sent"
+          },
+          {
+            "event": "failed"
+          }
+        ],
+        "properties": {
+          "offset": {
+            "x": 230,
+            "y": 580
+          },
+          "service": "{{trigger.message.InstanceSid}}",
+          "channel": "{{trigger.message.ChannelSid}}",
+          "from": "{{flow.channel.address}}",
+          "message_type": "custom",
+          "to": "{{contact.channel.address}}",
+          "body": "{{widgets.attendee.parsed.evento.barista.messages.inactive}}",
+          "media_url": "{{widgets.attendee.parsed.evento.barista.inactiveMediaUrl}}"
+        }
+      },
+      {
+        "name": "set-coffee-direct",
+        "type": "set-variables",
+        "transitions": [
+          {
+            "next": "add-barista",
+            "event": "next"
+          }
+        ],
+        "properties": {
+          "variables": [
+            {
+              "value": "{{flow.variables.token}}",
+              "key": "cafe"
+            }
+          ],
+          "offset": {
+            "x": 640,
+            "y": 1130
+          }
+        }
+      },
+      {
+        "name": "menu",
+        "type": "send-and-wait-for-reply",
+        "transitions": [
+          {
+            "next": "set-coffee-menuy",
+            "event": "incomingMessage"
+          },
+          {
+            "event": "timeout"
+          },
+          {
+            "event": "deliveryFailure"
+          }
+        ],
+        "properties": {
+          "offset": {
+            "x": 920,
+            "y": 850
+          },
+          "service": "{{trigger.message.InstanceSid}}",
+          "channel": "{{trigger.message.ChannelSid}}",
+          "from": "{{widgets.attendee.parsed.evento.barista.messageServiceSID}}",
+          "message_type": "content_template",
+          "content_sid": "{{widgets.attendee.parsed.evento.barista.menuTemplateSID}}",
+          "timeout": "3600"
+        }
+      },
+      {
+        "name": "set-coffee-menuy",
+        "type": "set-variables",
+        "transitions": [
+          {
+            "next": "add-barista",
+            "event": "next"
+          }
+        ],
+        "properties": {
+          "variables": [
+            {
+              "value": "{{widgets.menu.inbound.Body}}",
+              "key": "cafe"
+            }
+          ],
+          "offset": {
+            "x": 980,
+            "y": 1120
+          }
+        }
+      },
+      {
+        "name": "add-barista",
+        "type": "run-function",
+        "transitions": [
+          {
+            "next": "barista-result",
+            "event": "success"
+          },
+          {
+            "event": "fail"
+          }
+        ],
+        "properties": {
+          "service_sid": "ZSb1803a2988efbcf025122e3cb0dd644b",
+          "environment_sid": "ZEb98cd37c5bbb62af2efc8ea62150b095",
+          "offset": {
+            "x": 810,
+            "y": 1430
+          },
+          "function_sid": "ZHd3adfc661e60dbfc16bb4603914ca925",
+          "parameters": [
+            {
+              "value": "{{flow.variables.evento}}",
+              "key": "evento"
+            },
+            {
+              "value": "{{flow.variables.from}}",
+              "key": "from"
+            },
+            {
+              "value": "{{flow.variables.cafe}}",
+              "key": "cafe"
+            }
+          ],
+          "url": "https://eventos-2246-dev.twil.io/add-barista"
+        }
+      },
+      {
+        "name": "barista-result",
+        "type": "send-message",
+        "transitions": [
+          {
+            "event": "sent"
+          },
+          {
+            "event": "failed"
+          }
+        ],
+        "properties": {
+          "offset": {
+            "x": 850,
+            "y": 1680
+          },
+          "service": "{{trigger.message.InstanceSid}}",
+          "channel": "{{trigger.message.ChannelSid}}",
+          "from": "{{flow.channel.address}}",
+          "message_type": "custom",
+          "to": "{{contact.channel.address}}",
+          "body": "{{widgets.add-barista.parsed.mensagem}}"
+        }
+      },
+      {
+        "name": "send_message_2",
+        "type": "send-message",
+        "transitions": [
+          {
+            "next": "verify-barista-enable",
+            "event": "sent"
+          },
+          {
+            "event": "failed"
+          }
+        ],
+        "properties": {
+          "offset": {
+            "x": -170,
+            "y": 600
+          },
+          "service": "{{trigger.message.InstanceSid}}",
+          "channel": "{{trigger.message.ChannelSid}}",
+          "from": "{{flow.channel.address}}",
+          "message_type": "custom",
+          "to": "{{contact.channel.address}}",
+          "body": "MESSAGESID: {{widgets.attendee.parsed.evento.barista.menuTemplateSID}}\n\nTRIGGER:\n{{trigger}}"
+        }
+      },
+      {
+        "name": "variables-subflow",
+        "type": "set-variables",
+        "transitions": [
+          {
+            "next": "attendee",
+            "event": "next"
+          }
+        ],
+        "properties": {
+          "variables": [
+            {
+              "value": "{{trigger.parent.parameters.token}}",
+              "key": "token"
+            },
+            {
+              "value": "{{trigger.parent.parameters.from}}",
+              "key": "from"
+            },
+            {
+              "value": "{{trigger.parent.parameters.evento}}",
+              "key": "evento"
+            }
+          ],
+          "offset": {
+            "x": 500,
+            "y": -60
+          }
+        }
+      },
+      {
+        "name": "variables-messaging",
+        "type": "set-variables",
+        "transitions": [
+          {
+            "next": "attendee",
+            "event": "next"
+          }
+        ],
+        "properties": {
+          "variables": [
+            {
+              "value": "{{trigger.message.Body}}",
+              "key": "token"
+            },
+            {
+              "value": "{{trigger.message.From}}",
+              "key": "from"
+            },
+            {
+              "value": "signalsingapore2023",
+              "key": "evento"
+            }
+          ],
+          "offset": {
+            "x": -290,
+            "y": -50
+          }
+        }
+      }
+    ],
+    "initial_state": "Trigger",
+    "flags": {
+      "allow_concurrent_calls": true
+    }
+  }
