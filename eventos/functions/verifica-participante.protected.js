@@ -1,6 +1,8 @@
 const admin = require('firebase-admin');
 process.env.GOOGLE_APPLICATION_CREDENTIALS = Runtime.getAssets()['/firebase-credentials.json'].path;
-const { escondeNumero, limpaNumero, getDDD, sendNotification, convertNewLine, fillParams } = require(Runtime.getFunctions()['util'].path);
+const { escondeNumero, limpaNumero, getDDD, sendNotification, convertNewLine, fillParams, adicionaNove } = require(Runtime.getFunctions()['util'].path);
+const { checkUser } = require(Runtime.getFunctions()['codecon'].path);
+
 
 if (!admin.apps.length) {
   admin.initializeApp({}); 
@@ -10,7 +12,6 @@ if (!admin.apps.length) {
 const firestore = admin.firestore();
 const md5 = require('md5');
 
-const AGENDAMENTO_ATIVADO = false;
 
 
 /*
@@ -70,14 +71,18 @@ exports.handler = async function(context, event, callback) {
                     pontosCorrente: 0,
                     recebeuOptin: false,
                     ativouNetworking: false,
-                    impressoes: 0
+                    possuiRegistro: false,
+                    impressoes: 0,
+                    codeconAtivado: false
                 });
             return {
                 pontosAcumulados: 0,
                 pontosCorrente: 0,
                 recebeuOptin: false,
                 ativouNetworking: false,
-                impressoes: 0
+                possuiRegistro: false,
+                impressoes: 0,
+                codeconAtivado: false
             };
         }
     });
@@ -115,281 +120,124 @@ exports.handler = async function(context, event, callback) {
         agendamentoPosicao = await firestore.collection('events')
             .doc(event.evento).collection('agendamento')
             .where('posicao', '<', agendamento.posicao)
+            .where('status', '==', 'fila')
             .get().then(s => {
                 return s.size + 1;
         });
         agendamento.posicao = agendamentoPosicao;
     }
 
+
+    let podeResgatar = true;
+    let podeResgatarBarista = true;
+    let proximoResgate = ''
+    let proximoResgateBarista = '';
+
+
+    if (participante.ultimoResgate && evento.tempoMinimoResgate) {
+
+        // evento.limiteTempoResgate
+        const current_timestamp = admin.firestore.Timestamp.fromDate(new Date());
+        const tempo = (current_timestamp.toDate().getTime() - participante.ultimoResgate.toDate().getTime())/1000/60;
+
+        podeResgatar = tempo >= evento.tempoMinimoResgate;
+        proximoResgate = Math.ceil(evento.tempoMinimoResgate - tempo);
+
+    }
+
+    if (evento.barista) {
+        if (participante.ultimoResgateBarista && evento.barista.tempoMinimoResgate) {
+
+            // evento.limiteTempoResgate
+            const current_timestamp = admin.firestore.Timestamp.fromDate(new Date());
+            const tempo = (current_timestamp.toDate().getTime() - participante.ultimoResgateBarista.toDate().getTime())/1000/60;
+    
+            podeResgatarBarista = tempo >= evento.barista.tempoMinimoResgate;
+            proximoResgateBarista = Math.ceil(evento.barista.tempoMinimoResgate - tempo);
+    
+        }
+    
+    }
+
+
     let data = {
         participante: {
             ...participante,
+            podeResgatar,
+            proximoResgate,
             twilion: participanteGeral.twilion,
-            isAdmin: participanteGeral.twilion || participanteGeral.isAdmin,
-            gerenciaSorteio: participanteGeral.gerenciaSorteio,
+            isAdmin: participanteGeral.twilion || participanteGeral.isAdmin || participante.twilion || participante.isAdmin,
+            gerenciaSorteio: participanteGeral.gerenciaSorteio || participante.gerenciaSorteio,
             videomatikUnlimited: participanteGeral.videomatikUnlimited,
             coffeeUnlimited: participanteGeral.coffeeUnlimited
         },
+        evento,
         agendamento,
         agendamentoPosicao,
-        agendamentoTotal
+        agendamentoTotal,
+        videomatik: evento.videomatik
     };
 
     let mensagem = [];
     let vendingmachine = null;
 
+    const IS_ADMIN = participanteGeral.isAdmin || participanteGeral.twilion || participante.isAdmin || participante.twilion;
+    const GERENCIA_SORTEIO = participanteGeral.gerenciaSorteio || participante.gerenciaSorteio;
+
+
+
     switch (event.evento) {
-        case 'cssconf2023':
-        
-            mensagem.push(`Boas-vindas da *Twilio na Conferência CSS Brasil*!`);
-            mensagem.push(`Informe a palavra-chave para registrar no sorteio.`);
-            // mensagem.push(`Envie sua selfie ou a palavra-chave para ativar sorteios.`);
-            
-            if (participanteGeral.videomatikUnlimited) {
-                mensagem.push(`✅ Videomatik *ILIMITADO!* ✅`);
-            } else {
-                // mensagem.push(`Se você deseja criar um *vídeo dinâmico* da CSS Conf pela Videomatik, basta enviar uma selfie diretamente por aqui.`)
-            }
 
-            // Comandos para Twilions
-            if (participanteGeral.twilion) {
-                mensagem.push([
-                    `🚨 *TWILION* 🚨`,
-                    `Envie o código de participante para gerenciar pontos e outras configurações.`
-                ].join('\n'));
-            }
+        case 'signalsingapore2023':
+            mensagem.push(`Welcome to *SIGNAL Singapore*!`);
 
-            // Comandos para equipe TDC
-            if (participanteGeral.gerenciaSorteio) {
-                mensagem.push([
-                    `🚨 *SORTEIO ATIVADO* 🚨`,
-                    `Envie *SORTEIO* para gerenciar algum sorteio.`
-                ].join('\n'));
-
-            }
-
-            // mensagem.push('Envie *ROGADX* para participar do sorteio!');
-
-            // TODO: mudar de TDC Business para TDC Future
-            // mensagem.push('');
-            // mensagem.push(`O que você deseja fazer hoje?`);
-
-            break;
-
-
-        case 'devfest2022-sul':
-        
-            mensagem.push(`Boas-vindas da *Twilio no GDG DevFest Sul*!`);
-            // mensagem.push(`Envie sua selfie ou a palavra-chave para ativar sorteios.`);
-            
-            if (participanteGeral.videomatikUnlimited) {
-                mensagem.push(`✅ Videomatik *ILIMITADO!* ✅`);
-            } else {
-                mensagem.push(`Se você deseja criar um *vídeo dinâmico* do DevFest pela Videomatik, basta enviar uma selfie diretamente por aqui.`)
-            }
-
-            // Comandos para Twilions
-            if (participanteGeral.twilion) {
-                mensagem.push([
-                    `🚨 *TWILION* 🚨`,
-                    `Envie o código de participante para gerenciar pontos e outras configurações.`
-                ].join('\n'));
-            }
-
-            // Comandos para equipe TDC
-            if (participanteGeral.gerenciaSorteio) {
-                mensagem.push([
-                    `🚨 *SORTEIO ATIVADO* 🚨`,
-                    `Envie *SORTEIO* para gerenciar algum sorteio.`
-                ].join('\n'));
-
-            }
-
-            // mensagem.push('Envie *ROGADX* para participar do sorteio!');
-
-            // TODO: mudar de TDC Business para TDC Future
-            // mensagem.push('');
-            // mensagem.push(`O que você deseja fazer hoje?`);
-
-            break;
-
-
-        case 'tdcbusiness':
-        case 'tdcbusiness2022':
-        case 'tdcfuture2022':
-        case 'tdcconnections2023':
-        
-            mensagem.push(`Boas-vindas da *Twilio no TDC Connections 2023*!`);
-            // mensagem.push(`Envie sua selfie ou a palavra-chave para ativar sorteios.`);
-            
-            // Resumo de pontos
-            if (participante.pontosCorrente > 0 ) {
-                mensagem.push(`Você acumulou ${participante.pontosAcumulados} pontos e ainda pode trocar *${participante.pontosCorrente} pontos* no estande da Twilio.`);
-            } else {
-                if (participante.pontosAcumulados == 0) {
-                    mensagem.push(`Você pode acumular pontos e trocar por brindes da Twilio.\nFaça networking utilizando nossa ferramenta!`);
-                } else {
-                    mensagem.push(`Você já acumulou e gastou ${participante.pontosAcumulados} pontos.`)
-                }
-            }
-
-            if (participanteGeral.videomatikUnlimited) {
-                mensagem.push(`✅ Videomatik *ILIMITADO!* ✅`);
-            } else {
-                mensagem.push(`Se você deseja criar um *vídeo dinâmico* do TDC pela Videomatik, basta enviar uma selfie diretamente por aqui.`)
-            }
-
-
-            // Comandos para Twilions
-            if (participanteGeral.twilion) {
-                mensagem.push([
-                    `🚨 *TWILION* 🚨`,
-                    `Envie o código de participante para gerenciar pontos e outras configurações.`
-                ].join('\n'));
-            }
-
-            // Comandos para equipe TDC
-            if (participanteGeral.gerenciaSorteio) {
-                mensagem.push([
-                    `🚨 *SORTEIO STADIUM E TRILHAS* 🚨`,
-                    `Envie *SORTEIO* para gerenciar algum sorteio.`
-                ].join('\n'));
-            }
-            if (evento.barista) {
-                // TODO: verificar se participante definiu a cidade
-                // TODO: não exibir mensagem caso participante seja ONLINE
-
-                if (participanteGeral.coffeeUnlimited || participante.coffeeUnlimited) {
-                    mensagem.push(`☕️ Café *ILIMITADO!* ☕️`);
-                } else {        
-                    if(participante.pontosCorrente > evento.barista.points ) {
-                        if (evento.barista.enabled) {
-                            mensagem.push('Peça seu ☕️!\nVocê já possui pontos suficiente.\nEnvie *CAFÉ* para entrar na fila!');
+            if (evento.barista && evento.barista.enabled) {
+                if (evento.barista && evento.barista.enabled) {
+                    if (participanteGeral.coffeeUnlimited || participante.coffeeUnlimited) {
+                        mensagem.push(`☕️ Café *ILIMITADO!* ☕️ Envie *BARISTA* para pedir o seu.`);
+                    } else {
+                        if (!podeResgatarBarista) {
+                            mensagem.push(`Você pode resgatar seu próximo ☕️ em ${proximoResgateBarista} minuto(s).`)
                         } else {
-                            mensagem.push('Quer um ☕️?\nEm algum momento nosso barista pode estar em funcionamento.\nConfira no estande da Twilio!');
+                            mensagem.push(`Quer um café especial? Envie *BARISTA* para pedir o seu.`);
                         }
-                    } else {
-                        mensagem.push(`O que acha de um ☕️?\nAcumule ${evento.barista.points} pontos para garantir o seu!`);
+        
                     }
-                }
 
-            }
-            // TODO: mudar de TDC Business para TDC Future
-            mensagem.push('');
-            // mensagem.push(`O que você deseja fazer hoje?`);
-
-            if (AGENDAMENTO_ATIVADO) {
-                if (agendamento) {
-                    if (agendamento.status == 'fila') {
-                        mensagem.push(`1. Sair da fila de foto profissional.\n(você está em *${agendamentoPosicao}º lugar*)`);
-                    } else {
-                        mensagem.push(`1. Sair da fila de foto profissional.\n(atendimento em andamento)`);
-                    }
-                } else {
-                    mensagem.push(`1. Entrar na fila de foto profissional. ${agendamentoTotal && agendamentoTotal > 0 ? agendamentoTotal + ' pessoa(s) na fila.' : '*SEM FILA!* '}`);
                 }
             }
 
-            if (!participante.ativouNetworking) {
-                mensagem.push(`Quer participar do Networking Premiado da Twilio e acumular pontos? Envie *JOGAR* para configurar seu perfil`);
-            }
-
             break;
-
-        case 'conarec':
-        case 'hacktown':
-            // Carregar dados de vendingmachine
-            // {{widgets.verifica-participante.parsed.vendingmachine.codigos}}
-            vendingmachine = await firestore.collection('vendingmachine')
-                .doc(process.env.VENDINGMACHINE_DEFAULT).collection('estoque').get().then(s => {
-
-                    return {
-                        codigos: s.docs.map(d => d.id),
-                        items: s.docs.reduce((prev, current) => {
-                            // console.log('CURR', current.id, '>', current.data());
-                            prev[current.id] = current.data();
-                            return prev;
-                        }, {})
-                    };
-            });
-            // console.log('VENDING MACHINE', vendingmachine);
-            data.vendingmachine = vendingmachine;
-            break;
-
-        case 'cdc2022':
-            mensagem.push(`*Twilio* welcomes you to the *Caribbean Developer Conference*!`);
-            mensagem.push(`Are you enjoyng the event? Send your selfie here and we will build a video for you to share into your social media channels.`);
-            mensagem.push(`You can also use the promo-code CDC2022 to get $10 into your Twilio account. Don't have an account? Create yours in https://www.twilio.com/try-twilio?promo=CDC2022`);
-            // mensagem.push(`If you like to create a video with your selfie telling about you attended this event, please send a picture here.`);
-            // mensagem.push(`And if you love swags 🎁, talk with a Twilion at the event or try one of quick-deploy solutions from our Code Exchange repository at https://www.twilio.com/code-exchange?q=&f=serverless and show to us. `)
-            break;
-
-        case 'tslsingapore':
-            mensagem.push(`Welcome to Twilio Startup Lab in Singapore!`);
-
-            // Carregar dados de vendingmachine
-            // {{widgets.verifica-participante.parsed.vendingmachine.codigos}}
-            vendingmachine = await firestore.collection('vendingmachine')
-                .doc(process.env.VENDINGMACHINE_DEFAULT).collection('estoque').get().then(s => {
-
-                    return {
-                        codigos: s.docs.map(d => d.id),
-                        items: s.docs.reduce((prev, current) => {
-                            // console.log('CURR', current.id, '>', current.data());
-                            prev[current.id] = current.data();
-                            return prev;
-                        }, {})
-                    };
-            });
-            // console.log('VENDING MACHINE', vendingmachine);
-            data.vendingmachine = vendingmachine;
-            break;
-
     }
     
+
+
+    // Main Admin Settings
+    if (IS_ADMIN) {
+        mensagem.push([
+            `🚨 *ADMIN* 🚨`,
+            `Send participant ID to manage points and settings.`,
+            // `Envie *ESTOQUE* para gerenciar a vending machine.`
+        ].join('\n'));
+
+        let totalParticipantes = (await firestore.collection('events')
+            .doc(event.evento).collection('participantes').get()).size;
+
+        mensagem.push(`Total Participants: *${totalParticipantes}*`);
+        // mensagem.push(`Participantes: *${totalParticipantes}*\nResgates: *${evento.resgates}*\nVideomatik: *${evento.stats.videomatik}*`);
+
+    }
+
+    // Raffle Admin Settings
+    if (GERENCIA_SORTEIO) {
+        mensagem.push([
+            `🚨 *RAFFLES* 🚨`,
+            `Send *SORTEIO* to manage a raffle.`
+        ].join('\n'));
+    }
+
+
     data.mensagem = mensagem.join('\n\n');
-
-    // TODO: verifica palavras-chave de sorteios em aberto
-
-
-
-
-
-
-
-    // TODO: verificar pontuação de networking
-    // /events/{eventId}/participantes/{participanteId}/ [PontosAcumulados, PontosCorrente]
-    // como resoler pontuação igual?
-
-    // TODO: montar mensagem padrão para participante com resumo das informações
-
-
-
-    // console.log('VERIFICA PALAVRA: ', event);
-
-    // const client = await context.getTwilioClient();
-    // if (!event.token) {
-    //     console.log('TOKEN VAZIO');
-    //     return callback(null, {
-    //         type: 'not-found'
-    //     });
-    // }
-
-    // let activation = await firestore.collection('events').doc(event.evento).collection('palavras').doc(event.token).get();
-    // if (!activation.exists) {
-    //     activation = await firestore.collection('events').doc(event.evento).collection('palavras').doc(event.token.toLowerCase()).get();
-    //     if (!activation.exists) {
-    //         // token não encontrado
-    //         console.log(event.token, 'Palavra não existe no evento', event.evento);
-    //         return callback(null, {
-    //             type: 'not-found'
-    //         });
-    //     }
-    // }
-
-    console.log('DATA', data);
-    
-
     callback(null, data);
 
 };

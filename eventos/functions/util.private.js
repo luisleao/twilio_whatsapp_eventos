@@ -59,3 +59,13 @@ exports.adicionaNove = (number) => {
     }
     return number;
 }
+
+
+exports.replaceVariablesTemplateMessage = (message, data) => {
+    message = message.split('\\n').join('\n');
+    
+    Object.keys(data).forEach((field) => {
+        message = message.split(`{{${field}}}`).join(data[field])
+    });
+    return message;
+}

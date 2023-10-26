@@ -1,18 +1,24 @@
 // Impressão das etiquetas com múltiplas impressoras.
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
-const fs = require('fs');
 require("dotenv").config();
+
+const fs = require('fs');
 const Dymo = require('dymojs'),
     dymo = new Dymo();
 const convert = require('xml-js');
 
+
+let labelBarista = require('./label.cafe');
 
 // Initialize Firebase
 var admin = require("firebase-admin");
 
 let printers = {};
 let eventos = {};
+
+
+
 
 
 
@@ -25,6 +31,7 @@ const firestore = admin.firestore();
 
 const mapPrinters = async () => {
     let printersXml = convert.xml2js(await dymo.getPrinters());
+    console.log('printersXml', printersXml);
     let printersArray = printersXml.elements[0].elements
         .map(e => {
             return Object.assign({},
@@ -40,7 +47,6 @@ const updatePrintersFromFirestore = query => {
     query.forEach(async doc => {
         const printerId = doc.id;
         const printerData = await doc.data();
-        // console.log('PRINTER CHANGED', printerData.Name);
         Object.assign(printers[printerId], {...printerData});
 
         // carregar dados do evento (label, inclusive)
@@ -71,6 +77,9 @@ const updateEventosFromFirestore = query => {
 const init = async () => {
     console.log('Iniciando sistema de impressão...');
 
+    // labelBarista = fs.readFileSync('./label.cafe.dymo', 'utf-8');
+    // console.log('labelBarista', labelBarista);
+
     // Carregar impressoras Dymo
     printers = await mapPrinters();
     const printersNames = Object.keys(printers).map(p => printers[p].Name);
@@ -82,33 +91,33 @@ const init = async () => {
         }, { merge: true });
     });
 
-    console.log('listando impressoras...');
-    // Carregar dados da impressora do Firestore
+    // Loading printers data from Firestore
+    console.log('Listing printers...');
     await firestore.collection('printers')
         .where('Name', 'in', printersNames)
         .get().then(updatePrintersFromFirestore);
 
-    console.log('listando eventos...');
-    // Carregar dados de eventos do Firestore
+    // Load event data from Firestore
+    console.log('Listing events...');
     await firestore.collection('events')
         .where('active', '==', true)
         .get().then(updateEventosFromFirestore);
 
         
+ 
 
-
-    // Criar listener para carregar dados da impressora do Firestore
+    // Create listener to load printers data from Firestore
     firestore.collection('printers')
         .where('Name', 'in', printersNames)
         .onSnapshot(updatePrintersFromFirestore);
 
-    // Criar listener para carregar dados dos eventos ativos do Firestore
+    // Create listener to load data from active events from Firestore
     firestore.collection('events')
         .where('active', '==', true)
         .onSnapshot(updateEventosFromFirestore);
 
 
-    // Filtrar no firestore etiquetas vinculadas as impressoras 
+    // FIlter labels on Firestore tied to printers
     firestore.collection('labels')
         .where('printer', 'in', printersNames)
         .onSnapshot(async query => {
@@ -121,59 +130,82 @@ const init = async () => {
                     const evento = labelData.evento;
                     const eventoData = eventos[labelData.evento] || {};
                     
-                    // const evento = null; // printers[labelData.printer].evento || null
-                    // const eventoData = {}; // eventos[evento] || {}
+                    let labelXml = null;
+
+                    switch(labelData.type) {
+                        case 'coffee': labelXml = labelBarista; break;
+                        default:       labelXml = eventoData.label;
+                    }
 
                     console.log(labelData, evento, eventoData);
-                    if (eventoData.label) {
+                    if (labelXml) {
 
-                        // TODO: carregar label do evento ou default
+                        // Load data into label
                         const label = Object.keys(labelData).reduce((prev, key)=> {
                             console.log(key, labelData[key]);
                             return prev.split(`{{${key}}}`).join(labelData[key]);
-                        }, `${eventoData.label}`);
+                        }, `${labelXml}`);
 
-                        // Imprimir label
+
+                        // Print label
                         dymo.print(labelData.printer, label).then(async p => {
-                            console.log('Imprimindo >', labelData);
-                            // const { participanteId, nome, pronome, linkedin, impressoes, evento } = doc.data();
+                            console.log(labelData.printer, ' Printing >', labelData, '\n\n\n', p, '* * * * * \n\n\n');
 
                             if (evento) {
-                                // Salvar informacao de impressao no evento
-                                if (labelData.participanteId) {
-                                    await firestore.collection('events')
-                                        .doc(evento)
-                                        .collection('participantes')
-                                        .doc(labelData.participanteId)
-                                        .set({
-                                            printed: true,
-                                            impressoes: admin.firestore.FieldValue.increment(1),
-                                            lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
-                                        }, { merge: true });
-                                } else {
-                                    console.log('Com evento, porém sem ID de participante!');
+                                
+                                switch(labelData.type) {
+                                    case 'coffee':
+                                        // Don't do nothing. It will just remove the element
+
+                                        // await firestore.collection('events')
+                                        //     .doc(evento)
+                                        //     .collection('barista')
+                                        //     .doc(labelId)
+                                        //     .set({
+                                        //         printed: true,
+                                        //         impressoes: admin.firestore.FieldValue.increment(1),
+                                        //         lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
+                                        //     }, { merge: true });
+
+                                        break;
+                                    default:
+
+                                        // Salvar informacao de impressao no evento
+                                        if (labelData.idPlayerEvent) {
+                                            await firestore.collection('events')
+                                                .doc(evento)
+                                                .collection('participantes')
+                                                .doc(labelData.idPlayerEvent)
+                                                .set({
+                                                    printed: true,
+                                                    impressoes: admin.firestore.FieldValue.increment(1),
+                                                    lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
+                                                }, { merge: true });
+                                        } else {
+                                            console.log('Com evento, porém sem ID de participante!');
+                                        }
                                 }
 
                             } else {
-                                console.log('SEM EVENTO');
+                                console.log('ERROR: NO EVENT DEFINED!');
                             }
 
-                        }).catch(e => { console.log("ERRO ", e)});
+                        }).catch(e => { console.log("ERROR: ", e)});
 
                         // remover da fila ao imprimir 
                         batch.delete(doc.ref);
 
                     } else {
-                        console.log('EVENTO SEM LABEL DEFINIDO!');
+                        console.log('ERROR: EVENT WITHOUT DEFINED LABEL!');
                     }
 
                 });
                 await batch.commit();
-                console.log('FIM DA FILA');
+                console.log('END OF THE LINE');
             }
         });
 
-    console.log('Sistema carregado com sucesso!');
+    console.log('System initialized!');
 };
 
 
