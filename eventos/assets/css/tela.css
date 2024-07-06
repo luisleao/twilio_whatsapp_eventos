@@ -39,7 +39,7 @@ main {
 
 #image-content img {
     width: 100%;
-    height: 100%;
+    /* height: 100%; */
     display: block;
 }
 
@@ -107,4 +107,29 @@ p {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+}
+
+
+
+ul {
+    margin: 0;
+    padding: 0;
+}
+  
+li {
+    font-size: 1.5em;
+    display: block;
+    /* overflow: visible; */
+    list-style-type: none;
+    padding: .5em;
+    margin-bottom: .1em;
+    box-sizing: content-box;
+}
+
+
+#qrcode {
+    padding: 20pt;
+    width: 70%;
+    background-color: #fff;
+    margin-top: 20pt;
 }

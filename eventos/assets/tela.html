@@ -4,75 +4,318 @@
         <title>Feedback</title>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Sans+Condensed">
         <link rel="stylesheet" href="css/tela.css">  
-        <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-app.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-auth.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.js"></script>
-        <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.css" />
-        <script type="module" src="javascript/tela.js"></script>
+
+        <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+        <script type="text/javascript" src="javascript/qrcode.min.js"></script>
+
+
+        <style>
+          
+            /* #current-qrcode {
+              filter: invert(1);
+            } */
+            
+            #fullscreen, #main-container {
+                background-color: #f0f0f0;
+            }
+
+            html, body {
+              font-family: "Fira Sans Condensed", sans-serif;
+              margin: 0;
+              padding: 0;
+              background-color: #f0f0f0;
+            }
+        
+            #login-form, #filter, #request-list {
+              margin: 20px;
+              padding: 20px;
+              background-color: #fff;
+              border-radius: 8px;
+            }
+        
+            label {
+              display: block;
+              margin-bottom: 8px;
+            }
+        
+            input, select, button {
+              width: 100%;
+              padding: 8px;
+              margin-bottom: 16px;
+              border: 1px solid #ccc;
+              border-radius: 4px;
+            }
+        
+            button {
+              background-color: #4caf50;
+              color: #fff;
+              cursor: pointer;
+            }
+        
+            button:hover {
+              background-color: #45a049;
+            }
+        
+            #logout-btn {
+              background-color: #f44336;
+            }
+        
+            #logout-btn:hover {
+              background-color: #d32f2f;
+            }
+        
+            .hidden {
+              display: none !important;
+            }
+        
+            /* Estilos para diferentes status */
+            .request {
+              padding: 10px;
+              margin-bottom: 10px;
+              border-radius: 8px;
+            }
+        
+            .new {
+              background-color: #3498db;
+              color: #fff;
+            }
+        
+            .selected {
+              background-color: #2ecc71;
+              color: #fff;
+            }
+        
+            .played {
+              background-color: #e74c3c;
+              color: #fff;
+            }
+        
+            .blocked {
+              background-color: #95a5a6;
+              color: #fff;
+            }
+        
+            /* Adaptações para dispositivos móveis */
+            @media only screen and (max-width: 600px) {
+              #login-form, #filter, #request-list {
+                margin: 10px;
+                padding: 10px;
+              }
+        
+              button {
+                width: auto;
+              }
+            }
+        
+            #filter {
+              display: none;
+            }
+        
+            .status-selector select {
+              margin-right: 10px;
+            }
+        
+            /* Adicionei estilos para a lista de perguntas */
+            .request {
+              display: grid;
+              grid-template-columns: 1fr 150px; /* Duas colunas, a primeira com tamanho automático e a segunda com 100px */
+              gap: 10px; /* Espaçamento entre as colunas */
+              margin-bottom: 10px; /* Espaçamento entre as perguntas */
+            }
+        
+            /* Adicionei estilos para a caixa de seleção */
+            .status-selector select {
+              width: 100%; /* Ajustar a largura para preencher a coluna */
+            }
+
+        </style>
+
     </head>
 
     <body>
-        <div id="login-form">
-            <h1>Formulário de Login</h1>
-            <form onsubmit="return login();">
-              <label for="email">Email:</label>
-              <input type="email" id="email" name="email" required><br><br>
-              <label for="senha">Senha:</label>
-              <input type="password" id="senha" name="senha" required><br><br>
-              <input type="submit" value="Entrar">
-            </form>
-        </div>
-        <main class="hidden" id="main-container">
+      <div id="fullscreen">
+        <main id="main-container">
             <div id="empty" class="hidden">
                 <div id="text-content">
-                    <h1>Nenhuma palestra está aberta para avaliação</h1>
+                    <h1 id="trilhaNome"></h1>
                 </div>
                 <div id="image-content">
-                    <img src="images/testeira.png" alt="empty">
+                    <img src="images/twiliodevs.png" alt="empty">
                 </div>
             </div>
             <div id="brand-container">
-                <img src="images/powered.png" width="700px" alt="brand">
+                <img src="images/twiliodevs.png" width="500px" alt="brand">
             </div>
-            <div id="container">
+            <div id="container" class="hidden">
                 <div id="text-content">
                     <h2>Envie seu feedback!<span id="trilha"></span></h2>
                     <h1 id="talk-title"></h1>
                 </div>
-                <div id="image-content-qr">
+                <div id="image-content-qr" class="hidden">
                     <div id="code-container">
                         <p>envie o código
                         <span id="dynamic-code"></span><br/>
                         para <span>(11) 5039-3737</span></p>
                     </div>
+                    <div id="qrcode"></div>
                 </div>
             </div>
         </main>
+      </div>
+
         <script>
-            function login() {
-                const email = document.getElementById("email").value;
-                const senha = document.getElementById("senha").value;
-                fetch("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyC6I8Rwo9YiJgd7zK-U5RpHBZDSPsDt0ME", {
-                    method: "POST",
-                    body: JSON.stringify({
-                        email: email,
-                        password: senha,
-                        returnSecureToken: true
-                    }),
-                }).then((response) => {
-                    if (response.ok) {
-                        return response.json();
-                    } else {
-                        alert("Email ou senha inválidos");
-                    }
-                }).then((data) => {
-                    if (data) {
-                        window.display();
-                        document.getElementById("login-form").classList.add("hidden");
-                    }
-                });
-                return false
-            }
+            
+            const CURRENT_EVENT = 'tdcfloripa2024';
+
+            const mainContainer = document.getElementById("container");
+            const emptyContainer = document.getElementById("empty");
+            const brandContainer = document.getElementById("brand-container");
+            const codeContainer = document.getElementById("image-content-qr");
+
+            // mainContainer.classList.add("hidden");
+            emptyContainer.classList.remove("hidden");
+            brandContainer.classList.add("hidden");
+            codeContainer.classList.add("hidden");
+            
+
+
+            const params = new Proxy(new URLSearchParams(window.location.search), {
+                get: (searchParams, prop) => searchParams.get(prop),
+            });
+
+            // Configurar sua configuração do Firebase
+            const firebaseConfig = {
+                apiKey: "AIzaSyC6I8Rwo9YiJgd7zK-U5RpHBZDSPsDt0ME",
+                authDomain: "br-events.firebaseapp.com",
+                projectId: "br-events",
+                storageBucket: "br-events.appspot.com",
+                messagingSenderId: "603831187236",
+                appId: "1:603831187236:web:b1b3e97f5c6a38a4eb25b1"
+            };
+
+            // Inicializar o Firebase
+            firebase.initializeApp(firebaseConfig);
+
+            // Referência para o banco de dados Firestore
+            const db = firebase.firestore();
+            var qrcode;
+
+
+            (async () => {
+
+
+                console.log('params.id', params.id);
+
+
+
+                const trilhaSnap = await db.collection('events').doc(CURRENT_EVENT).collection('trilhas')
+                    .doc(params.id).get();
+                    console.log('trilhaSnap', trilhaSnap);
+
+                const trilhaElement = document.getElementById('trilhaNome');
+                if (trilhaSnap.exists) {
+                    trilhaElement.innerText = trilhaSnap.data().trilhaNome;
+                } else {
+                    trilhaElement.innerText = 'Nenhuma palestra ativa nesta trilha.'
+                }
+
+
+
+
+                const q = await db.collection('events').doc(CURRENT_EVENT).collection('palestras')
+                    .where('trilhaId', '==', params.id)
+                    .where('status', '==', 'Aberto')
+                    .orderBy('updatedAt', 'desc')
+                    .limit(1).onSnapshot(querySnapshot => {
+                        console.log("total de palestras: ", querySnapshot.size);
+
+                        if (querySnapshot.size === 0) {
+                            console.log('zerado');
+                            mainContainer.classList.add("hidden");
+                            emptyContainer.classList.remove("hidden");
+                            brandContainer.classList.add("hidden");
+                            return;
+                        }
+
+                        const palestra = querySnapshot.docs[0].data();
+                        const idPalestra = querySnapshot.docs[0].id;
+
+                        const dynamicCode = document.getElementById("dynamic-code");
+                        dynamicCode.innerHTML = `${idPalestra}`
+
+                        const talkTitle = document.getElementById("talk-title");
+                        talkTitle.innerHTML = palestra.titulo;
+
+                        const trilha = document.getElementById("trilha");
+                        trilha.innerHTML = `${palestra.trilhaNome}`;
+
+                        const url = `https://wa.me/551150393737?text=${idPalestra}`
+                        // const url = `https://chart.googleapis.com/chart?chs=500x500&cht=qr&chl=https://wa.me/551150393737?text=${idPalestra}`
+                        // const currentQrCode = document.getElementById("current-qrcode");
+                        // if (currentQrCode) {
+                        //     currentQrCode.remove();
+                        // }
+                        if (!qrcode) {
+
+                            var qrcode = new QRCode(document.getElementById("qrcode"), {
+                                text: url,
+                                width: 128,
+                                height: 128,
+                                // colorDark : "#000000",
+                                // colorLight : "#ffffff",
+                                correctLevel : QRCode.CorrectLevel.H
+                            });
+                        } else {
+                            qrcode.clear(); // clear the code.
+                            qrcode.makeCode(url); // make another code.
+                        }
+
+
+
+                        // codeContainer.insertAdjacentHTML("afterbegin", `<img width="100%" id="current-qrcode" src="${url}" alt="whatsapp-logo-with-twilio" />`)
+                        emptyContainer.classList.add("hidden");
+                        mainContainer.classList.remove("hidden");
+                        brandContainer.classList.remove("hidden");
+                        codeContainer.classList.remove("hidden");
+                        // codeContainer.classList.add("hidden");
+                    });
+            })();
+
+
+
+
+            let wakeLock = null;
+
+            // Function that attempts to request a wake lock.
+            const requestWakeLock = async () => {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => {
+                    console.log('Wake Lock was released');
+                    });
+                    console.log('Wake Lock is active');
+                } catch (err) {
+                    console.error(`${err.name}, ${err.message}`);
+                }
+            };        
+
+
+            // requestWakeLock();
+
+            document.getElementById('fullscreen').addEventListener("click", e => {
+                console.log('container click')
+                requestWakeLock();
+                document.getElementById('fullscreen').requestFullscreen({
+                    navigationUI: 'hide'
+
+                })
+
+            });
+
+
         </script>
     </body>
 </html>
