@@ -1,0 +1,167 @@
+
+ul {
+  margin: 1em;
+  padding: 0;
+  /* list-style-type: none; */
+}
+
+li {
+  clear: both;
+  font-size: 1.5em;
+  display: block;
+  padding: .5em;
+  margin-bottom: 1em;
+}
+li span {
+  /* display: inline-block; */
+}
+
+.cleatBoth {
+  clear: both;
+}
+
+button {
+  font-size: .8em;
+  /* float: right; */
+  margin: 0 0 0 0.5em;
+  display: inline-block;
+}
+
+
+
+li.pendente .pronto,
+li.preparo .chamar,
+li.preparo .preparar,
+li.preparo .cancelar
+{
+  display: none;
+}
+
+li.pendente {
+  background-color: #f37466;
+}
+li.preparo {
+  background-color: #fcf47c;
+}
+
+
+
+
+
+
+
+
+
+
+body {
+  font-family: "Fira Sans Condensed", sans-serif;
+  margin: 0;
+  padding: 1em;
+  background-color: #f0f0f0;
+}
+
+
+
+#login-form, #filter {
+  margin: 20px;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+input, select, button {
+  /* width: 100%; */
+  /* margin-bottom: 16px; */
+
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  /* background-color: #4caf50;
+  color: #fff; */
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+#logout-btn {
+  background-color: #f44336;
+}
+
+#logout-btn:hover {
+  background-color: #d32f2f;
+}
+
+.hidden {
+  display: none !important;
+}
+
+
+/* Adaptações para dispositivos móveis */
+@media only screen and (max-width: 600px) {
+  #login-form, #filter, #request-list {
+    margin: 10px;
+    padding: 10px;
+  }
+
+  button {
+    width: auto;
+  }
+}
+
+
+/* Adicionei estilos para a lista de perguntas */
+.request {
+  display: grid;
+  grid-template-columns: 1fr 150px; /* Duas colunas, a primeira com tamanho automático e a segunda com 100px */
+  gap: 10px; /* Espaçamento entre as colunas */
+  margin-bottom: 10px; /* Espaçamento entre as perguntas */
+}
+
+/* Adicionei estilos para a caixa de seleção */
+.status-selector select {
+  width: 100%; /* Ajustar a largura para preencher a coluna */
+}
+
+
+/* drinks, coffee, mug */
+
+body.drinks li.mug,
+body.drinks li.coffee,
+body.mug li.drinks,
+body.mug li.coffee,
+body.coffee li.drinks,
+body.coffee li.mug
+{
+  display: none;
+}
+
+
+
+.mug .picture img {
+  max-height: 150px;
+}
+
+.mug .code  {
+  font-size: 2em
+}
+
+.mug .text {
+  background-color: white;
+  width: 100%;
+  padding: 10pt;
+}
+
+.drink .item {
+  font-weight: bold;
+  font-size: 1.2em;
+}

@@ -1,0 +1,338 @@
+<html>
+
+    <head>
+        <title>Twilio Orders</title>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Sans+Condensed">
+        <link rel="stylesheet" href="css/orders.css">  
+
+        <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    </head>
+
+    <body>
+
+        <h1>Twilio Orders</h1>
+        <a class="orderType" href="#">MUG</a>
+        <a class="orderType" href="#">DRINK</a>
+        
+
+        <div id="login-form">
+            <label for="email">Email:</label>
+            <input type="email" id="email" placeholder="Seu email">
+        
+            <label for="password">Senha:</label>
+            <input type="password" id="password" placeholder="Sua senha">
+        
+            <button onclick="login()">Login</button>
+        </div>
+        <button id="logout-btn" onclick="logout()" style="display: none;">Logout</button>
+
+        <main class="hidden" id="main-container">
+            <ul id="orders">
+
+            </ul>
+        </main>
+
+        <script>
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const CURRENT_EVENT = urlParams.get('currentEvent');
+            const orderType = urlParams.get('orderType');
+
+            console.log('orderType', orderType);
+            if (orderType) {
+                document.body.classList.add(orderType);
+            }
+            if (!orderType) {
+                alert('You need to add the query param orderType param before continue!');
+            } else {
+
+                if (!CURRENT_EVENT) {
+                    alert('You need to add the query param currentEvent param before continue!');
+                } else {
+                    for (btn of document.getElementsByClassName('orderType')) {
+                        btn.addEventListener("click", (e) => {
+                            e.preventDefault();
+                            window.location.href = `${location.protocol}//${location.host}${location.pathname}?currentEvent=${CURRENT_EVENT}&orderType=${ e.srcElement.innerText}`
+                        })
+                    }
+
+
+
+                    // Configurar sua configuração do Firebase
+                    const firebaseConfig = {
+                        apiKey: "AIzaSyC6I8Rwo9YiJgd7zK-U5RpHBZDSPsDt0ME",
+                        authDomain: "br-events.firebaseapp.com",
+                        projectId: "br-events",
+                        storageBucket: "br-events.appspot.com",
+                        messagingSenderId: "603831187236",
+                        appId: "1:603831187236:web:b1b3e97f5c6a38a4eb25b1"
+                    };
+
+                    // Inicializar o Firebase
+                    firebase.initializeApp(firebaseConfig);
+
+                    // Referência para o banco de dados Firestore
+                    const db = firebase.firestore();
+
+
+                    // Função de login
+                    function login() {
+                        const email = document.getElementById('email').value;
+                        const password = document.getElementById('password').value;
+
+                        firebase.auth().signInWithEmailAndPassword(email, password)
+                            .then(() => {
+                                // Login bem-sucedido
+                            })
+                            .catch(error => {
+                                console.error(error.message);
+                            });
+                    }
+
+
+                    // Função de logout
+                    function logout() {
+                        firebase.auth().signOut();
+                    }
+
+                    
+
+
+                    // Verificar o estado de autenticação atual
+                    firebase.auth().onAuthStateChanged(user => {
+                        if (user) {
+                            // Usuário autenticado
+                            document.getElementById('login-form').style.display = 'none';
+                            document.getElementById('main-container').style.display = 'block';
+                            document.getElementById("main-container").classList.remove("hidden");
+                            document.getElementById('logout-btn').style.display = 'block';
+                            // document.getElementById('orderType').style.display = 'block'; // Exibir o bloco de filtro
+                            loadRequests();
+                        } else {
+                            // Usuário não autenticado
+                            document.getElementById('login-form').style.display = 'block';
+                            document.getElementById('main-container').style.display = 'none';
+                            document.getElementById("main-container").classList.add("hidden");
+                            document.getElementById('logout-btn').style.display = 'none';
+                            // document.getElementById('orderType').style.display = 'none'; // Esconder o bloco de filtro
+                        }
+                    });
+
+
+
+                    function loadRequests() {
+                        console.log('LOAD', orderType.toLowerCase());
+                        console.log('CURRENT_EVENT', CURRENT_EVENT);
+                        const orders = document.getElementById("orders");
+
+                        window.db = db;
+
+                        db.collection('events').doc('signalsaopaulo2024').collection('orders')
+                            .doc(orderType.toLowerCase()).collection('orderRequests')
+                            .where("status", "in", ["pendente", "preparo"])
+                            .orderBy("createdAt", "asc")
+                            .onSnapshot(snapshot => {
+                                orders.innerHTML = "";
+                                if (snapshot.docs.length == 0) {
+                                    // TODO: adicionar nome da trilha no topo
+                                    orders.innerText = "Nenhum pedido encontrado!";
+                                }
+
+                                snapshot.docs.forEach((doc) => {
+
+                                    const item = doc.data();
+                                    const li = document.createElement("li");
+
+                                    li.classList.add(item.status);
+                                    li.classList.add(orderType.toLowerCase());
+
+                                    // TODO: change to consider if it's mug or drink
+
+                                    console.log('ITEM', orderType, item);
+
+                                    switch(orderType.toLowerCase()) {
+                                        case 'mug':
+                                            li.innerHTML = `
+                                                <div style="display: inline-block; width: 100%">
+                                                    <div class="picture" style="display: inline-block;"><img src="files/mugs/${item.productId}.png" /></div>
+                                                    <div class="content" style="display: inline-block;">
+                                                        <div class="phone" style="display: inline-block;">${item.telefone}</div>
+                                                        <div class="item" style="display: block; margin: 0 auto 0 0">${item.productName}</div>
+                                                        <div class="code" style="display: block;">${item.codigo}</div>
+                                                        <div class="name" style="display: block;"><span>Nome:</span> ${item.name}</div>
+                                                        <div class="text" style="display: block;"><span>Texto:</span> ${item.settings}</div>
+                                                    </div>
+                                                    <div class="" style="display: inline-block; text-align: right; align: right"> 
+                                                        <button id="pronto-${doc.id}" class="pronto" data-id="${doc.id}">✅ Pronto!</button>
+                                                        <button id="preparar-${doc.id}" class="preparar" data-id="${doc.id}">🧑‍💻 Preparando</button>
+                                                        <button id="cancelar-${doc.id}" class="cancelar" data-id="${doc.id}">😡 Cancelar</button>
+                                                        <button id="chamar-${doc.id}" class="chamar" data-id="${doc.id}">📞 Chamar ${item.chamados ? '[' + item.chamados + ']' : ''}</button> 
+                                                    </div>
+                                                </div>
+                                            `;
+                                            break;
+
+                                        default:
+                                            li.innerHTML = `
+                                                <div style="display: inline-block; min-width: 50%">
+                                                    <div class="phone" style="display: inline-block;">${item.telefone}</div>
+                                                    <div class="item" style="display: inline-block; margin: 0 auto 0 0">${item.productName}</div>
+                                                    <div class="settings" style="display: inline-block; margin: 0 auto 0 0">${item.settings}</div>
+                                                </div>
+                                                <div class="" style="display: inline-block; text-align: right; align: right"> 
+                                                    <button id="pronto-${doc.id}-azul" class="pronto" data-id="${doc.id}" data-pickup="azul">✅ Pronto Azul!</button>
+                                                    <button id="pronto-${doc.id}-vermelho" class="pronto" data-id="${doc.id}" data-pickup="vermelho">✅ Pronto Vermelho!</button>
+                                                    <button id="preparar-${doc.id}" class="preparar" data-id="${doc.id}">💪 Preparando</button>
+                                                    <button id="cancelar-${doc.id}" class="cancelar" data-id="${doc.id}">😡 Cancelar</button>
+                                                    <button id="chamar-${doc.id}" class="chamar" data-id="${doc.id}">📞 Chamar ${item.chamados ? '[' + item.chamados + ']' : ''}</button> 
+                                                    <button id="reprint-${doc.id}" class="reprint" data-id="${doc.id}">🖨️ Imprimir ${item.reprint ? '[' + item.reprint + ']' : ''}</button>
+                                                </div>
+                                            `;
+
+                                    }
+
+
+                                    li.setAttribute("data-id", doc.id);
+
+                                    // li.setAttribute("data-city", item.cidade);
+
+                                    orders.appendChild(li);
+
+                                    const chamarButton = document.getElementById(`chamar-${doc.id}`);
+                                    chamarButton.addEventListener("click", () => {
+                                        console.log("chamar");
+                                        sendPost({
+                                            filaId: doc.id,
+                                            status: "chamar",
+                                            evento: item.evento,
+                                            orderType: orderType.toLowerCase(),
+                                            idPlayerEvent: item.idPlayerEvent,
+                                        })
+                                    });
+
+                                    const prepararButton = document.getElementById(`preparar-${doc.id}`);
+                                    prepararButton.addEventListener("click", () => {
+                                        console.log("preparar");
+                                        sendPost({
+                                            filaId: doc.id,
+                                            status: "preparo",
+                                            evento: item.evento,
+                                            orderType: orderType.toLowerCase(),
+                                            idPlayerEvent: item.idPlayerEvent,
+                                        })
+                                    });
+
+                                    const cancelarButton = document.getElementById(`cancelar-${doc.id}`);
+                                    cancelarButton.addEventListener("click", () => {
+                                        console.log("cancelar");
+                                        if (confirm('Deseja cancelar este pedido?')) {
+                                            sendPost({
+                                                filaId: doc.id,
+                                                status: "cancelado",
+                                                evento: item.evento,
+                                                orderType: orderType.toLowerCase(),
+                                                idPlayerEvent: item.idPlayerEvent,
+                                            })
+                                        }
+                                    });
+
+                                    switch(orderType.toLowerCase()) {
+
+                                        case 'mug':
+                                            const prontoButton = document.getElementById(`pronto-${doc.id}`);
+                                            prontoButton.addEventListener("click", () => {
+                                                console.log("pronto azul");
+                                                sendPost({
+                                                    filaId: doc.id,
+                                                    status: "pronto",
+                                                    evento: item.evento,
+                                                    pickupLocation: 'azul',
+                                                    orderType: orderType.toLowerCase(),
+                                                    idPlayerEvent: item.idPlayerEvent,
+                                                })
+                                            });
+                                            break;
+
+                                        default:
+
+                                            const prontoButtonAzul = document.getElementById(`pronto-${doc.id}-azul`);
+                                            prontoButtonAzul.addEventListener("click", () => {
+                                                console.log("pronto azul");
+                                                sendPost({
+                                                    filaId: doc.id,
+                                                    status: "pronto",
+                                                    evento: item.evento,
+                                                    pickupLocation: 'azul',
+                                                    orderType: orderType.toLowerCase(),
+                                                    idPlayerEvent: item.idPlayerEvent,
+                                                })
+                                            });
+
+                                            const prontoButtonVermelho = document.getElementById(`pronto-${doc.id}-vermelho`);
+                                            prontoButtonVermelho.addEventListener("click", () => {
+                                                console.log("pronto vermelho");
+                                                sendPost({
+                                                    filaId: doc.id,
+                                                    status: "pronto",
+                                                    evento: item.evento,
+                                                    pickupLocation: 'vermelho',
+                                                    orderType: orderType.toLowerCase(),
+                                                    idPlayerEvent: item.idPlayerEvent,
+                                                })
+                                            });
+
+                                        }
+                                    
+
+
+                                    const reprintButton = document.getElementById(`reprint-${doc.id}`);
+                                    if (reprintButton) {
+                                        reprintButton.addEventListener("click", () => {
+                                            console.log("reprint");
+                                            sendPost({
+                                                filaId: doc.id,
+                                                status: "reprint",
+                                                evento: item.evento,
+                                                orderType: orderType.toLowerCase(),
+                                                idPlayerEvent: item.idPlayerEvent,
+                                            })
+                                        });
+                                    }
+
+                                });
+                            });
+                    }
+
+                }
+
+            }
+
+
+
+            function toDateTime(secs) {
+                var t = new Date(1970, 0, 1); // Epoch
+                t.setSeconds(secs);
+                return t;
+            }
+
+            const sendPost = (payload) => {
+                try {
+                    fetch("https://eventos-2246-dev.twil.io/order-status", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(payload)
+                    })
+                } catch (err) {
+
+                }
+            }
+
+
+        </script>
+    </body>
+</html>

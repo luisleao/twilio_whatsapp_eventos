@@ -1,0 +1,444 @@
+<html>
+<head>
+    <title>Twilio Orders QR</title>
+    <meta charset="utf-8">
+    <script src="/javascript/jsqr/jsQR.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Sans+Condensed">
+    <link rel="stylesheet" href="css/tela.css">  
+    <link rel="stylesheet" href="css/barista.css">  
+    <style>
+
+        body.azul {
+            background-color: blue;
+        }
+        body.vermelho {
+            background-color: red;
+        }
+        /*
+        .user #canvas {
+            -webkit-transform: scaleX(-1);
+            transform: scaleX(-1);
+        }
+
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 100%;
+            bottom: 100%;
+            width: 100%;
+        }
+
+        #output {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            z-index: 99;
+            background-color: white;
+            padding: 5pt;
+
+            font-size: 2.5em;
+            max-width: 100%;
+        }
+
+
+        #btnChangeCamera {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 9999;
+            padding: 5pt;
+
+        }
+
+        @media (min-width:480px) {
+            #btnChangeCamera {
+                font-size: 2em;
+            }
+
+        }
+        */
+
+        html, body {
+            width: 100%;
+            height: 100%; 
+            margin: 0;
+            overflow: hidden;
+        }
+        #container {
+            height: 100%;
+            width: 100%;
+            display: block;
+            position: fixed;
+            z-index: -2;
+            top: 0;
+            left: 0;
+        }
+        canvas {
+            display: block;
+        }
+        #canvas {
+            position: relative;
+            max-width: 100%;
+            max-height: 100%;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            height: 100%;
+        }
+
+
+        #statusGreen, #statusRed {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: -1;
+
+        }
+        #statusGreen {
+            background-color: rgba(0,255,0,0.5)
+        }
+        #statusRed {
+            background-color: rgba(255,0,0,0.5)
+        }
+
+        #output {
+            position: absolute;
+            bottom: 0;
+            padding: .5em;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        #outputMessage {
+            margin: 0 auto;
+            display: inline-block;
+            background-color: white;
+            padding: .5em;
+            font-size: 2em;
+            position: relative;
+            width: auto;
+            text-align: center;
+        } 
+
+        #selectCameras {
+            position: absolute;
+            top: .75em;
+            right: .5em;
+            font-size: 2em;
+        }
+
+        h1 {
+            margin: 0;
+            padding: 0;
+            position: absolute;
+            left: .5em;
+            top: .5em;
+            font-size: 2.5em;
+            
+            text-shadow: 0px 0px 7px rgba(255,255,255,0.6);
+        }
+
+        .invert #canvas {
+            -webkit-transform: translate(-50%, -50%) scaleX(-1);
+            transform: translate(-50%, -50%) scaleX(-1);
+        }
+
+
+    </style>
+</head>
+<body>
+
+    <h1 id="twilio">Twilio Orders QR</h1>
+    <a class="orderType" href="#">MUG</a>
+    <a class="orderType" href="#">DRINK</a>
+
+    <select id="selectCameras"></select>
+
+    <div id="container">
+        <canvas id="canvas" hidden></canvas>
+    </div>
+
+    <div id="statusGreen" hidden></div>
+    <div id="statusRed" hidden></div>
+    <div id="output">
+        <div id="outputMessage">
+            <b>Show the QRCode to confirm it's ready!</b><br/>
+            <span id="outputData"></span>
+        </div>
+    </div>
+
+    <script>
+
+        var video = document.createElement("video");
+        var canvasElement = document.getElementById("canvas");
+        var canvas = canvasElement.getContext("2d");
+
+        var outputContainer = document.getElementById("output");
+        var outputMessage = document.getElementById("outputMessage");
+
+        // var outputData = document.getElementById("outputData");
+
+        var statusGreen = document.getElementById("statusGreen");
+        var statusRed = document.getElementById("statusRed");
+
+        const selectCameras = document.getElementById("selectCameras");
+
+        const twilio = document.getElementById("twilio");
+
+        twilio.addEventListener("click", e => {
+            if(document.body.classList.contains("invert")) {
+                document.body.classList.remove("invert");
+            } else {
+                document.body.classList.add("invert");
+            }
+        });
+
+
+        let currentStream;
+
+
+
+        function gotDevices(mediaDevices) {
+            selectCameras.innerHTML = '';
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.appendChild(document.createTextNode('Please choose your camera!'));
+            selectCameras.appendChild(defaultOption);
+
+            let count = 1;
+            mediaDevices.forEach(mediaDevice => {
+                if (mediaDevice.kind === 'videoinput') {
+                    const option = document.createElement('option');
+                    option.value = mediaDevice.deviceId;
+                    const label = mediaDevice.label || `Camera ${count++}`;
+                    const textNode = document.createTextNode(label);
+                    option.appendChild(textNode);
+                    selectCameras.appendChild(option);
+                }
+            });
+        }
+
+        function stopMediaTracks(stream) {
+            stream.getTracks().forEach(track => {
+                track.stop();
+            });
+        }
+
+        function openCamera() {
+            if (typeof currentStream !== 'undefined') {
+                stopMediaTracks(currentStream);
+            }
+            const videoConstraints = {};
+            if (selectCameras.value === '') {
+                videoConstraints.facingMode = 'user'; //'environment';
+            } else {
+                videoConstraints.deviceId = { exact: selectCameras.value };
+            }
+            const constraints = {
+                video: videoConstraints,
+                audio: false
+            };
+
+
+            navigator.mediaDevices
+                .getUserMedia(constraints)
+                .then(stream => {
+                    currentStream = stream;
+                    video.srcObject = stream;
+                    video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
+                    video.play();
+                    return navigator.mediaDevices.enumerateDevices();
+                })
+                    // .then(gotDevices)
+                    .catch(error => {
+                        console.error(error);
+                });
+
+
+
+        }
+
+        selectCameras.addEventListener('change', event => {
+            console.log('select', selectCameras.value);
+            openCamera();
+        });
+
+
+
+
+
+        function sendPost(payload) {
+            return fetch("https://eventos-2246-dev.twil.io/barista-status", {
+                // mode: 'no-cors',
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload)
+            }).then(r => {
+                return r;
+            })
+            .catch (err => {
+                throw err;
+            });
+                // alert('ERRO!');
+        }
+
+
+        function clearCode() {
+                currentCode = '';
+
+                // outputMessage.hidden = false;
+                // outputData.parentElement.hidden = true;
+                outputMessage.innerHTML = `Scan the QRCode to confirm the order is ready!`;
+
+                statusGreen.hidden = true;
+                statusRed.hidden = true;
+                // outputData.innerText = '';
+        }
+
+        function drawLine(begin, end, color) {
+            // console.log('BEGIN', begin);
+            canvas.beginPath();
+            canvas.moveTo(begin.x, begin.y);
+            canvas.lineTo(end.x, end.y);
+            canvas.lineWidth = 4;
+            canvas.strokeStyle = color;
+            canvas.stroke();
+        }
+
+        let cameraFacing = '';
+
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const CURRENT_EVENT = urlParams.get('currentEvent');
+        const FILTER = urlParams.get('filter') || 'drink';
+        const orderType = urlParams.get('orderType');
+        const pickupLocation = urlParams.get('pickupLocation');
+        
+
+        if (!orderType) {
+            alert('You need to add the query param orderType param before continue!');
+        } else {
+            if (!pickupLocation) {
+                alert('You need to add the query param pickupLocation param before continue!');
+            } else {
+
+                document.body.classList.add(orderType);
+                document.body.classList.add(pickupLocation);
+
+
+                // orderRequests
+                if (!CURRENT_EVENT) {
+                    alert('You need to add the query param currentEvent before continue!');
+                } else {
+
+
+                    for (btn of document.getElementsByClassName('orderType')) {
+                        btn.addEventListener("click", (e) => {
+                            e.preventDefault();
+                            window.location.href = `${location.protocol}//${location.host}${location.pathname}?currentEvent=${CURRENT_EVENT}&pickupLocation=${pickupLocation}&orderType=${ e.srcElement.innerText}`
+                        })
+                    }
+
+
+                    navigator.mediaDevices.enumerateDevices().then(gotDevices);
+
+                    var currentCode = '';
+                    var tmrClearCode = null;
+
+
+                    // changeCamera();
+                    requestAnimationFrame(tick);
+
+
+                    // // Use facingMode: environment to attemt to get the front camera on phones
+                    // navigator.mediaDevices.getUserMedia({ 
+                    //     video: { 
+                    //         facingMode: "environment" 
+                    //     } 
+                    // }).then(function(stream) {
+                    //     video.srcObject = stream;
+                    //     video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
+                    //     video.play();
+
+                    //     requestAnimationFrame(tick);
+                    // });
+
+                    async function tick() {
+                        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                            canvasElement.hidden = false;
+                            outputContainer.hidden = false;
+                    
+                            canvasElement.height = video.videoHeight;
+                            canvasElement.width = video.videoWidth;
+                            canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+                            var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                            var code = jsQR(imageData.data, imageData.width, imageData.height, {
+                                inversionAttempts: "dontInvert",
+                            });
+                            if (code) {
+                                drawLine(code.location.topLeftCorner, code.location.topRightCorner, "#FF3B58");
+                                drawLine(code.location.topRightCorner, code.location.bottomRightCorner, "#FF3B58");
+                                drawLine(code.location.bottomRightCorner, code.location.bottomLeftCorner, "#FF3B58");
+                                drawLine(code.location.bottomLeftCorner, code.location.topLeftCorner, "#FF3B58");
+
+                                // outputMessage.hidden = true;
+                                // outputData.parentElement.hidden = false;
+
+                                if (code.data != currentCode && code.data.length == 20) {
+                                    console.log('CODE', code.data);
+                                    currentCode = code.data;
+                                    outputMessage.innerHTML = `Found Order <b>${code.data}</b>...`;
+
+                                    // TODO: mostrar loader
+                                    // TODO: mostrar tela verde no retorno ou vermelha
+                                    
+                                    await sendPost({
+                                        filaId: code.data,
+                                        status: "pronto",
+                                        orderType: orderType.toLowerCase(),
+                                        pickupLocation,
+                                        evento: CURRENT_EVENT
+                                    })
+                                    .then(s => {
+                                        console.log('S', s);
+                                        statusGreen.hidden = false;
+                                        statusRed.hidden = true;
+                                        outputMessage.innerHTML = `ORDER <b>${code.data}</b> CONFIRMED!`;
+                                    })
+                                    .catch(e => {
+                                        console.log('ERRO FORA', e);
+                                        statusGreen.hidden = true;
+                                        statusRed.hidden = false;
+                                        outputMessage.innerHTML = `ERROR ON ORDER <b>${code.data}</b><br/>TRY AGAIN LATER!`;
+                                    });
+
+                    
+                                    if (!tmrClearCode) {
+                                        clearTimeout(tmrClearCode);
+                                    }
+                                    tmrClearCode = setTimeout(clearCode, 2000);
+                                }
+                            } else {
+                                if (currentCode == '') {
+                                }
+                            }
+                        }
+                        requestAnimationFrame(tick);
+                    }
+
+                }
+            }
+        }
+
+    </script>
+
+
+</body>
+</html>

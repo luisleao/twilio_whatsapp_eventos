@@ -1,4 +1,7 @@
 
+/*
+DEPRECATED: remover este arquivo em 7/agosto/2024
+*/
 
 import * as firebase from "https://www.gstatic.com/firebasejs/9.18.0/firebase-app.js";
 import {
@@ -34,7 +37,7 @@ if (!CURRENT_EVENT) {
 
     const todo = document.getElementById("to-do");
     const q = query(
-        collection(db, "events", CURRENT_EVENT, "barista"),
+        collection(db, "events", CURRENT_EVENT, "orders"),
         where("status", "in", ["pendente", "preparo"]),
         orderBy("createdAt", "asc")
     );
@@ -115,7 +118,7 @@ if (!CURRENT_EVENT) {
             // case 'COFFEE_JOSEALDO': return 'José Aldo';
             // case 'COFFEE_JOAOPAULO': return 'João Paulo Capobianco';
             // case 'COFFEE_ALESSANDRAMICHEL': return 'Alessandra e Michel';
-            default: return tipo
+            default: return tipo.replace('COFFEE_', '')
 
         }
     }
@@ -139,13 +142,15 @@ if (!CURRENT_EVENT) {
 
                 // li.classList.add(cafe.cidade == 'Recife' ? cafe.cidade.toLowerCase() : 'bh');
                 li.classList.add(cafe.status);
-                // console.log('NomeCafe(cafe.cafe)', NomeCafe(cafe.cafe))
+                // console.log('NomeCafe(cafe.pedido)', NomeCafe(cafe.pedido))
 
-                li.innerHTML = `<span class="telefone">${cafe.telefone}</span>: <span class="cafe">${NomeCafe(cafe.cafe)}</span>  
-                    <button id="pronto-${doc.id}" class="pronto" data-id="${doc.id}">✅ Pronto!</button>
-                    <button id="preparar-${doc.id}" class="preparar" data-id="${doc.id}">☕️ Preparar</button>
-                    <button id="cancelar-${doc.id}" class="cancelar" data-id="${doc.id}">😡 Cancelar</button>
-                    <button id="chamar-${doc.id}" class="chamar" data-id="${doc.id}">📞 Chamar ${cafe.chamados ? '[' + cafe.chamados + ']' : ''}</button> 
+                li.innerHTML = `<span class="telefone">${cafe.telefone}</span>: <span class="cafe">${typeof cafe.pedido == 'string' ? cafe.pedido : cafe.pedido.name || cafe.pedido.product_retailer_id}</span>  
+                    <button id="pronto-${doc.id}" class="pronto" data-id="${doc.id}">✅ Ready!</button>
+                    <button id="preparar-${doc.id}" class="preparar" data-id="${doc.id}">☕️ Prepare</button>
+                    <button id="cancelar-${doc.id}" class="cancelar" data-id="${doc.id}">😡 Cancel</button>
+                    <button id="chamar-${doc.id}" class="chamar" data-id="${doc.id}">📞 Call ${cafe.chamados ? '[' + cafe.chamados + ']' : ''}</button> 
+                    <button id="reprint-${doc.id}" class="reprint" data-id="${doc.id}">🖨️ Reprint</button>
+
                 `;
 
                 li.setAttribute("data-id", doc.id);
@@ -193,6 +198,18 @@ if (!CURRENT_EVENT) {
                     sendPost({
                         filaId: doc.id,
                         status: "pronto",
+                        evento: cafe.evento,
+                        idPlayerEvent: cafe.idPlayerEvent,
+                    })
+                });
+
+
+                const reprintButton = document.getElementById(`reprint-${doc.id}`);
+                reprintButton.addEventListener("click", () => {
+                    console.log("reprint");
+                    sendPost({
+                        filaId: doc.id,
+                        status: "reprint",
                         evento: cafe.evento,
                         idPlayerEvent: cafe.idPlayerEvent,
                     })

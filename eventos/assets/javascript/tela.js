@@ -1,5 +1,7 @@
 import * as firebase from "https://www.gstatic.com/firebasejs/9.18.0/firebase-app.js";
-import { getFirestore, onSnapshot, collection, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/9.18.0/firebase-firestore.js";
+import { getFirestore, onSnapshot, collection, query, where, orderBy, limit, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.18.0/firebase-firestore.js";
+
+const CURRENT_EVENT = 'tdcbusiness2023';
 
 const firebaseConfig = {
     apiKey: "AIzaSyC6I8Rwo9YiJgd7zK-U5RpHBZDSPsDt0ME",
@@ -18,9 +20,20 @@ const params = new Proxy(new URLSearchParams(window.location.search), {
 });
 
 
-window.display = function() {
+window.display = async function() {
+    console.log('params.id', params.id);
+
+    const trilhaSnap = await getDoc(doc(db, "events", CURRENT_EVENT, "trilhas", params.id));
+    
+    const trilhaElement = document.getElementById('trilhaNome');
+    if (trilhaSnap.exists()) {
+        trilhaElement.innerText = trilhaSnap.data().trilhaNome;
+    } else {
+        trilhaElement.innerText = 'Nenhuma palestra ativa nesta trilha.'
+    }
+
     const q = query(
-        collection(db, "events", "tdcconnections2023", "palestras"), 
+        collection(db, "events", CURRENT_EVENT, "palestras"), 
         where("trilhaId", "==", params.id), 
         where("status", "==", "Aberto"), 
         orderBy("updatedAt", "desc"),

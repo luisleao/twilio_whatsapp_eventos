@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Twilio: Lista de Perguntas</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f0f0f0;
+    }
+
+    #login-form, #filter, #questions-list {
+      margin: 20px;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    button {
+      background-color: #4caf50;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    #logout-btn {
+      background-color: #f44336;
+    }
+
+    #logout-btn:hover {
+      background-color: #d32f2f;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Estilos para diferentes status */
+    .question {
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+    }
+
+    .new {
+      background-color: #3498db;
+      color: #fff;
+    }
+
+    .selected {
+      background-color: #2ecc71;
+      color: #fff;
+    }
+
+    .on-screen {
+      background-color: #e74c3c;
+      color: #fff;
+    }
+
+    .blocked, .showed {
+      background-color: #95a5a6;
+      color: #fff;
+    }
+
+    /* Adaptações para dispositivos móveis */
+    @media only screen and (max-width: 600px) {
+      #login-form, #filter, #questions-list {
+        margin: 10px;
+        padding: 10px;
+      }
+
+      button {
+        width: auto;
+      }
+    }
+
+    #filter {
+      display: none;
+    }
+
+    .status-selector select {
+      margin-right: 10px;
+    }
+
+    /* Adicionei estilos para a lista de perguntas */
+    .question {
+      display: grid;
+      grid-template-columns: 1fr 150px; /* Duas colunas, a primeira com tamanho automático e a segunda com 100px */
+      gap: 10px; /* Espaçamento entre as colunas */
+      margin-bottom: 10px; /* Espaçamento entre as perguntas */
+    }
+
+    /* Adicionei estilos para a caixa de seleção */
+    .status-selector select {
+      width: 100%; /* Ajustar a largura para preencher a coluna */
+    }
+  </style>
+</head>
+<body>
+
+  <div id="login-form">
+    <label for="email">Email:</label>
+    <input type="email" id="email" placeholder="Seu email">
+
+    <label for="password">Senha:</label>
+    <input type="password" id="password" placeholder="Sua senha">
+
+    <button onclick="login()">Login</button>
+    <button id="logout-btn" onclick="logout()" style="display: none;">Logout</button>
+  </div>
+
+  <div id="filter">
+    <label for="status-filter">Filtrar por status:</label>
+    <select id="status-filter" onchange="filterQuestions()">
+      <option value="all">Todos</option>
+      <option value="new">Novas</option>
+      <option value="selected">Selecionadas</option>
+      <option value="on-screen">Em tela</option>
+      <option value="blocked">Bloqueadas</option>
+      <option value="showed">Exibidas</option>
+    </select>
+  </div>
+
+  <div id="questions-list">
+    <!-- Lista de perguntas será exibida aqui -->
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+  <script>
+    // Configurar sua configuração do Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyC6I8Rwo9YiJgd7zK-U5RpHBZDSPsDt0ME",
+        authDomain: "br-events.firebaseapp.com",
+        projectId: "br-events",
+        storageBucket: "br-events.appspot.com",
+        messagingSenderId: "603831187236",
+        appId: "1:603831187236:web:b1b3e97f5c6a38a4eb25b1"
+    };
+
+    // Inicializar o Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    // Referência para o banco de dados Firestore
+    const db = firebase.firestore();
+
+
+    // Função de login
+    function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      firebase.auth().signInWithEmailAndPassword(email, password)
+        .then(() => {
+          // Login bem-sucedido
+        })
+        .catch(error => {
+          console.error(error.message);
+        });
+    }
+
+    // Função de logout
+    function logout() {
+      firebase.auth().signOut();
+    }
+
+    
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const CURRENT_EVENT = urlParams.get('currentEvent');
+    if (!CURRENT_EVENT) {
+
+        alert('You need to add the query param currentEvent before continue!');
+
+    } else {
+
+
+      // Verificar o estado de autenticação atual
+      firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+          // Usuário autenticado
+          document.getElementById('login-form').style.display = 'none';
+          document.getElementById('questions-list').style.display = 'block';
+          document.getElementById('logout-btn').style.display = 'block';
+          document.getElementById('filter').style.display = 'block'; // Exibir o bloco de filtro
+          loadQuestions(); // Carregar perguntas
+        } else {
+          // Usuário não autenticado
+          document.getElementById('login-form').style.display = 'block';
+          document.getElementById('questions-list').style.display = 'none';
+          document.getElementById('logout-btn').style.display = 'none';
+          document.getElementById('filter').style.display = 'none'; // Esconder o bloco de filtro
+        }
+      });
+
+    }
+   
+    // Função para carregar perguntas em tempo real
+    function loadQuestions() {
+      db.collection('events').doc(CURRENT_EVENT).collection('questions')
+        .orderBy('createdAt', 'desc')
+        .onSnapshot(snapshot => {
+          // Limpar a lista antes de adicionar novas perguntas
+          document.getElementById('questions-list').innerHTML = "";
+
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            // Adicionar lógica para exibir as perguntas conforme necessário
+            const questionElement = document.createElement('div');
+            questionElement.className = `question ${data.status}`;
+            questionElement.innerHTML = `
+              <div>
+                <strong>${data.question}</strong><br>
+                ${data.phoneNumber} - ${data.profileName} - ${data.name}
+              </div>
+              <div class="status-selector">
+                <select onchange="updateStatus('${doc.id}', this.value)">
+                  <option value="new" ${data.status === 'new' ? 'selected' : ''}>Novas</option>
+                  <option value="selected" ${data.status === 'selected' ? 'selected' : ''}>Selecionadas</option>
+                  <option value="on-screen" ${data.status === 'on-screen' ? 'selected' : ''}>Em tela</option>
+                  <option value="showed" ${data.status === 'showed' ? 'selected' : ''}>Exibidas</option>
+                  <option value="blocked" ${data.status === 'blocked' ? 'selected' : ''}>Bloqueadas</option>
+                </select>
+              </div>
+            `;
+            document.getElementById('questions-list').appendChild(questionElement);
+          });
+        });
+    }
+
+
+    // Função para filtrar perguntas por status
+    function filterQuestions() {
+      const selectedStatus = document.getElementById('status-filter').value;
+
+      // Adiciona ou remove a classe 'hidden' conforme o status da pergunta
+      document.querySelectorAll('.question').forEach(question => {
+        if (selectedStatus === 'all' || question.classList.contains(selectedStatus)) {
+          question.style.display = 'grid'; // Exibir a pergunta
+        } else {
+          question.style.display = 'none'; // Ocultar a pergunta
+        }
+      });
+    }
+
+    // Função para atualizar o status de uma pergunta
+    function updateStatus(questionId, newStatus) {
+      // Atualizar o status e o campo updatedAt no Firestore
+      const updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+      db.collection('events').doc(CURRENT_EVENT).collection('questions').doc(questionId).update({
+        status: newStatus,
+        updatedAt: updatedAt
+      });
+    }
+  </script>
+  </script>
+</body>
+</html>
