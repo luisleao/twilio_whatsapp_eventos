@@ -1,7 +1,6 @@
 {
   "name": "canon-printer",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -21,5 +20,6 @@
     "qr-image": "3.2.0",
     "qrcode": "1.5.3",
     "xml-js": "1.6.11"
-  }
+  },
+  "description": ""
 }
