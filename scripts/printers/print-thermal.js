@@ -65,7 +65,7 @@ const printThermal = async (data) => {
             // printer.setTextSize();
 
             if (data.settings) {
-                data.settings = data.settings.split('・ ').join('\n');
+                data.settings = data.settings.split('・ ').join('');
                 //・ Abacaxi/Pineapple・ Limão/Lime・ Maracujá/Passion fruitAçúcar/Sugar
             }
 
