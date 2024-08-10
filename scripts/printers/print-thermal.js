@@ -67,9 +67,10 @@ const printThermal = async (data) => {
             printer.setTypeFontB();
             printer.setTextQuadArea();                                  // Set text to quad area
             printer.newLine();
-            printer.setText
             printer.println(` ${data.pedido} `);
-            printer.setTextNormal()
+            printer.setTextSize(3, 3);
+            printer.println(` ${data.settings} `);
+            printer.setTextNormal();
             printer.println(` ${data.telefone} `);
             printer.newLine();
 
