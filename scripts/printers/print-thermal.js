@@ -72,7 +72,7 @@ const printThermal = async (data) => {
             if (data.settings) {
                 printer.alignLeft();
                 printer.setTextDoubleHeight();
-                printer.println(` ${data.settings.split('・ ').join('')} `);
+                printer.println(data.settings.split('・ ').join('').split('\n').join(', '));
             }
             printer.setTextNormal();
             printer.alignCenter();
