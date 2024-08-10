@@ -64,17 +64,18 @@ const printThermal = async (data) => {
             printer.invert(false);                                       // Background/text color inversion
             // printer.setTextSize();
 
-            if (data.settings) {
-                data.settings = data.settings.split('・ ').join('');
-                //・ Abacaxi/Pineapple・ Limão/Lime・ Maracujá/Passion fruitAçúcar/Sugar
-            }
 
             printer.setTypeFontB();
             printer.setTextQuadArea();                                  // Set text to quad area
             printer.newLine();
             printer.println(` ${data.pedido} `);
+            if (data.settings) {
+                printer.alignLeft();
+                printer.setTextDoubleHeight();
+                printer.println(` ${data.settings.split('・ ').join('')} `);
+            }
             printer.setTextNormal();
-            printer.println(` ${data.settings ?? ''} `);
+            printer.alignCenter();
             printer.println(`*** ${data.telefone} ***`);
             printer.newLine();
 
